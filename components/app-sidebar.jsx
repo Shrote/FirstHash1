@@ -71,40 +71,36 @@ export function AppSidebar({ ...props }) {
 
   // Define navigation data
   const data = {
-    user: {
-      // name: localStorage.getItem("userName") || "User",
-      // email: localStorage.getItem("userName") || "user@example.com",
-      name:userEmail,
-      email:userEmail,
-      avatar: "/avatars/shadcn.jpg",
-    },
-    navMain: [
-      {
-        title: "Dashboard",
-        url: "/dashboard",
-        icon: LayoutDashboardIcon,
-        isActive: pathname === "/dashboard",
-        permission: "dashboard",
-      },
-    ],
-    navSecondary: [
-      {
-        title: "Notification",
-        url: "/notifications",
-        icon: Bell,
-        isActive: pathname === "/notifications",
-        permission: "dashboard", // Assuming notifications are available to anyone with dashboard access
-      },
-      {
-        title: "Logs",
-        url: "/logs",
-        icon: ScrollText,
-        isActive: pathname === "/logs",
-        permission: "dashboard", // Assuming logs are available to anyone with dashboard access
-      },
-    ],
-    
-  }
+  user: {
+    name: userEmail,
+    email: userEmail,
+    avatar: "/avatars/shadcn.jpg",
+  },
+  navMain: [
+    { title: "Dashboard", icon: LayoutDashboardIcon, href: "/dashboard", permission: "dashboard" },
+    { title: "Logs", icon: Warehouse, href: "/logs", permission: "logs" },
+  ],
+  navSecondary: [
+    { title: "Alerts", icon: Bell, href: "/alerts", permission: "alerts" },
+  ],
+  projects: [
+    { title: "Project Alpha", icon: BoxIcon, href: "/projects/alpha", permission: "projects" },
+  ],
+  inventory: [
+    { title: "Inventory", icon: BoxIcon, href: "/inventory", permission: "inventory" },
+  ],
+  qr: [
+    { title: "QR Code", icon: QrCode, href: "/qr", permission: "qr" },
+  ],
+  order: [
+    { title: "Orders", icon: Truck, href: "/orders", permission: "orders" },
+  ],
+  production: [
+    { title: "Production", icon: Factory, href: "/production", permission: "production" },
+  ],
+}
+
+
 
   // Helper function to check if user has access to a specific permission
   const hasAccess = (permission) => {
