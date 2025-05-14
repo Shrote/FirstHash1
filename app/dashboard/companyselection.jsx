@@ -23,9 +23,11 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
     address: "",
     phone: "",
     contactPersons: "",
+    registrationNumer: "",
   });
 
-  // Fetch companies from Firestore
+  const [errors, setErrors] = useState({});
+
   useEffect(() => {
     const fetchCompanies = async () => {
       const snapshot = await getDocs(collection(firestore, "companyName"));
@@ -35,26 +37,45 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
     fetchCompanies();
   }, []);
 
-  const handleSave = async () => {
-    const { name, address, phone, contactPersons } = formData;
+  const validate = () => {
+    const newErrors = {};
 
-    if (!name) {
-      toast.error("Company name is required");
-      return;
+    if (!formData.name.trim()) newErrors.name = "Company name is required.";
+    if (!formData.address.trim()) newErrors.address = "Address is required.";
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone number is required.";
+    } else if (!/^\d{10}$/.test(formData.phone)) {
+      newErrors.phone = "Phone must be 10 digits.";
     }
 
+    if (!formData.contactPersons.trim()) newErrors.contactPersons = "Contact person is required.";
+
+    if (formData.registrationNumer.trim() && !/^[A-Za-z0-9\-]+$/.test(formData.registrationNumer)) {
+      newErrors.registrationNumer = "Invalid registration number format.";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validate()) return;
+
     try {
+      const { name, address, phone, contactPersons, registrationNumer } = formData;
       await setDoc(doc(firestore, "companyName", name), {
         name,
         address,
         phone,
         contactPersons,
+        registrationNumer,
       });
       setCompanies(prev => [...prev, name]);
       setSelectedCompany(name);
       setOpenDialog(false);
       toast.success("Company added successfully!");
-      setFormData({ name: "", address: "", phone: "", contactPersons: "" });
+      setFormData({ name: "", address: "", phone: "", contactPersons: "", registrationNumer: "" });
+      setErrors({});
     } catch (err) {
       toast.error("Error saving company");
       console.error(err);
@@ -89,26 +110,46 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
             <DialogTitle>Add New Company</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <Input
-              placeholder="Company Name"
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-            />
-            <Input
-              placeholder="Company Address"
-              value={formData.address}
-              onChange={e => setFormData({ ...formData, address: e.target.value })}
-            />
-            <Input
-              placeholder="Phone"
-              value={formData.phone}
-              onChange={e => setFormData({ ...formData, phone: e.target.value })}
-            />
-            <Input
-              placeholder="Contact Persons"
-              value={formData.contactPersons}
-              onChange={e => setFormData({ ...formData, contactPersons: e.target.value })}
-            />
+            <div>
+              <Input
+                placeholder="Company Name"
+                value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
+              />
+              {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+            </div>
+            <div>
+              <Input
+                placeholder="Company Address"
+                value={formData.address}
+                onChange={e => setFormData({ ...formData, address: e.target.value })}
+              />
+              {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
+            </div>
+            <div>
+              <Input
+                placeholder="Phone"
+                value={formData.phone}
+                onChange={e => setFormData({ ...formData, phone: e.target.value })}
+              />
+              {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+            </div>
+            <div>
+              <Input
+                placeholder="Contact Persons"
+                value={formData.contactPersons}
+                onChange={e => setFormData({ ...formData, contactPersons: e.target.value })}
+              />
+              {errors.contactPersons && <p className="text-red-500 text-sm mt-1">{errors.contactPersons}</p>}
+            </div>
+            <div>
+              <Input
+                placeholder="Registration No"
+                value={formData.registrationNumer}
+                onChange={e => setFormData({ ...formData, registrationNumer: e.target.value })}
+              />
+              {errors.registrationNumer && <p className="text-red-500 text-sm mt-1">{errors.registrationNumer}</p>}
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={handleSave}>Save</Button>
