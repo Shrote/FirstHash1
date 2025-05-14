@@ -1,5 +1,7 @@
 "use client";
 
+// import { useState } from "react";
+import CompanySelection from "./companyselection";
 import { useState, useEffect, useMemo } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -67,25 +69,13 @@ import {
 } from "@/components/ui/chart";
 import * as Recharts from "recharts";
 
-// Sample data for charts
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
-
-const productPerformance = [
-  { name: "Product A", sales: 4000, revenue: 24000 },
-  { name: "Product B", sales: 3000, revenue: 18000 },
-  { name: "Product C", sales: 2000, revenue: 12000 },
-  { name: "Product D", sales: 2780, revenue: 16680 },
-  { name: "Product E", sales: 1890, revenue: 11340 },
-];
-
 export default function Page() {
-  
+  const [selectedCompany, setSelectedCompany] = useState(""); // ✅ Hook in component body
 
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        {/* <NotificationHandler /> */}
         <Toaster position="top-right" reverseOrder={false} />
         <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b">
           <div className="flex items-center gap-2 w-full">
@@ -98,32 +88,15 @@ export default function Page() {
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
-            {/* <div className="ml-auto flex items-center gap-2">
-              <Select defaultValue={timeframe} onValueChange={setTimeframe}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select timeframe" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="daily">Today</SelectItem>
-                  <SelectItem value="weekly">This Week</SelectItem>
-                  <SelectItem value="monthly">This Month</SelectItem>
-                  <SelectItem value="lastMonth">Last Month</SelectItem>
-                  <SelectItem value="financialYear">
-                    This Financial Year
-                  </SelectItem>
-                  <SelectItem value="lastFinancialYear">
-                    Last Financial Year
-                  </SelectItem>
-                  <SelectItem value="yearly">This Year</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm">
-                Export
-              </Button>
-            </div> */}
+            <div className="ml-auto flex items-center gap-2">
+              {/* ✅ This is the correct way to use CompanySelection */}
+              <CompanySelection
+                selectedCompany={selectedCompany}
+                setSelectedCompany={setSelectedCompany}
+              />
+            </div>
           </div>
         </header>
-        
       </SidebarInset>
     </SidebarProvider>
   );
