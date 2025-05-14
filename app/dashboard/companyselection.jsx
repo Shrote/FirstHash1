@@ -9,10 +9,17 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { firestore } from "@/lib/firebase";
-import { collection, getDocs, setDoc, doc } from "firebase/firestore";
+import { firestore, auth } from "@/lib/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import toast from "react-hot-toast";
 
 export default function CompanySelection({ selectedCompany, setSelectedCompany }) {
@@ -23,53 +30,113 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
     address: "",
     phone: "",
     contactPersons: "",
+    userName: "",
+    userPhone: "",
+    userEmail: "",
+    userAddress: "",
   });
 
-  // Fetch companies from Firestore
+  // Fetch company names from map keys
   useEffect(() => {
     const fetchCompanies = async () => {
-      const snapshot = await getDocs(collection(firestore, "companyName"));
-      const names = snapshot.docs.map(doc => doc.id);
-      setCompanies(names);
+      const companyDocRef = doc(firestore, "dropdownMenu", "companyName");
+      const snapshot = await getDoc(companyDocRef);
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        const names = Object.keys(data);
+        setCompanies(names);
+      }
     };
     fetchCompanies();
   }, []);
 
   const handleSave = async () => {
-    const { name, address, phone, contactPersons } = formData;
+    const {
+      name,
+      address,
+      phone,
+      contactPersons,
+      userName,
+      userPhone,
+      userEmail,
+      userAddress,
+    } = formData;
 
-    if (!name) {
-      toast.error("Company name is required");
+    if (!name || !userName || !userPhone || !userEmail || !userAddress) {
+      toast.error("Please fill all required fields");
       return;
     }
 
     try {
-      await setDoc(doc(firestore, "companyName", name), {
-        name,
-        address,
-        phone,
-        contactPersons,
+      // Step 1: Create Firebase Auth user (password = phone)
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        userEmail,
+        userPhone // phone used as password
+      );
+
+      const uid = userCredential.user.uid;
+
+      // Step 2: Save company data inside map
+      const companyDocRef = doc(firestore, "dropdownMenu", "companyName");
+      await setDoc(
+        companyDocRef,
+        {
+          [name]: {
+            name,
+            address,
+            phone,
+            contactPersons,
+          },
+        },
+        { merge: true }
+      );
+
+      // Step 3: Save user info inside <company>/users
+      const userDocRef = doc(firestore, name, "users");
+      await setDoc(userDocRef, {
+        uId: uid,
+        userName,
+        userPhone,
+        userEmail,
+        userAddress,
       });
-      setCompanies(prev => [...prev, name]);
+
+      // Step 4: Update dropdown UI
+      setCompanies((prev) => [...prev, name]);
       setSelectedCompany(name);
       setOpenDialog(false);
-      toast.success("Company added successfully!");
-      setFormData({ name: "", address: "", phone: "", contactPersons: "" });
+      toast.success("Company and user created!");
+
+      // Reset form
+      setFormData({
+        name: "",
+        address: "",
+        phone: "",
+        contactPersons: "",
+        userName: "",
+        userPhone: "",
+        userEmail: "",
+        userAddress: "",
+      });
     } catch (err) {
-      toast.error("Error saving company");
       console.error(err);
+      toast.error(err.message || "Failed to create user or company");
     }
   };
 
   return (
     <>
-      <Select value={selectedCompany} onValueChange={value => {
-        if (value === "add-new") {
-          setOpenDialog(true);
-        } else {
-          setSelectedCompany(value);
-        }
-      }}>
+      <Select
+        value={selectedCompany}
+        onValueChange={(value) => {
+          if (value === "add-new") {
+            setOpenDialog(true);
+          } else {
+            setSelectedCompany(value);
+          }
+        }}
+      >
         <SelectTrigger className="w-[250px]">
           <SelectValue placeholder="Select a company" />
         </SelectTrigger>
@@ -89,25 +156,52 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
             <DialogTitle>Add New Company</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Company Info */}
             <Input
               placeholder="Company Name"
               value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
             <Input
               placeholder="Company Address"
               value={formData.address}
-              onChange={e => setFormData({ ...formData, address: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
             />
             <Input
-              placeholder="Phone"
+              placeholder="Company Phone"
               value={formData.phone}
-              onChange={e => setFormData({ ...formData, phone: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
             />
             <Input
               placeholder="Contact Persons"
               value={formData.contactPersons}
-              onChange={e => setFormData({ ...formData, contactPersons: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, contactPersons: e.target.value })}
+            />
+
+            {/* Divider */}
+            <hr />
+            <p className="text-sm font-semibold">User Info</p>
+
+            {/* User Info */}
+            <Input
+              placeholder="User Name"
+              value={formData.userName}
+              onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
+            />
+            <Input
+              placeholder="User Phone"
+              value={formData.userPhone}
+              onChange={(e) => setFormData({ ...formData, userPhone: e.target.value })}
+            />
+            <Input
+              placeholder="User Email"
+              value={formData.userEmail}
+              onChange={(e) => setFormData({ ...formData, userEmail: e.target.value })}
+            />
+            <Input
+              placeholder="User Address"
+              value={formData.userAddress}
+              onChange={(e) => setFormData({ ...formData, userAddress: e.target.value })}
             />
           </div>
           <DialogFooter>
