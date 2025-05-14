@@ -3,24 +3,12 @@
 import * as React from "react"
 import { usePathname } from "next/navigation"
 import {
-  Bot,
-  User,
-  Warehouse,
   LayoutDashboardIcon,
-  BoxIcon,
-  QrCode,
-  Truck,
-  Package,
-  Bell,
-  Factory,
-  Store,
-  ScrollText,
-  Building2
+  Warehouse,
+  Building2Icon
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -31,35 +19,39 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { NavInventory } from "./nav-inventory"
-import { NavQr } from "./nav-qr"
-import { NavOrder } from "./nav-order"
-import { NavProduction } from "./nav-production"
 
 export function AppSidebar({ ...props }) {
-  const pathname = usePathname() // Get the current route path
+  const pathname = usePathname()
   const [userAccessLevels, setUserAccessLevels] = React.useState(null)
   const [userType, setUserType] = React.useState(null)
   const [isLoading, setIsLoading] = React.useState(true)
-  const [userEmail,setUserEmail]= React.useState(null)
+  const [userEmail, setUserEmail] = React.useState(null)
 
-  
-  // Fetch user access levels from localStorage on component mount
   React.useEffect(() => {
     const fetchUserData = () => {
       try {
-        // Get user data from localStorage
         const accessLevelsStr = localStorage.getItem("userAccessLevels")
         const userTypeStr = localStorage.getItem("userType")
-        setUserEmail(localStorage.getItem("userName"))
+        const userEmailStr = localStorage.getItem("userName")
+
+        console.log("Fetched userAccessLevels:", accessLevelsStr)
+        console.log("Fetched userType:", userTypeStr)
+        console.log("Fetched userEmail:", userEmailStr)
+
         if (accessLevelsStr) {
           const accessLevels = JSON.parse(accessLevelsStr)
           setUserAccessLevels(accessLevels)
+        } else {
+          // fallback for development
+          setUserAccessLevels({
+            dashboard: "true",
+            user: "true",
+            logs: "true"
+          })
         }
 
-        if (userTypeStr) {
-          setUserType(userTypeStr)
-        }
+        if (userTypeStr) setUserType(userTypeStr)
+        if (userEmailStr) setUserEmail(userEmailStr)
       } catch (error) {
         console.error("Error fetching user access levels:", error)
       } finally {
@@ -70,42 +62,31 @@ export function AppSidebar({ ...props }) {
     fetchUserData()
   }, [])
 
-  // Define navigation data
   const data = {
-  user: {
-    name: userEmail,
-    email: userEmail,
-    avatar: "/avatars/shadcn.jpg",
-  },
-  navMain: [
-    { title: "Dashboard", icon: LayoutDashboardIcon, href: "/dashboard", permission: "dashboard" },
-    {title:"Manage Company", icon: Building2, href:"/company",permission:"company"},
-    { title: "Logs", icon: Warehouse, href: "/logs", permission: "logs" },
-  ],
-}
+    user: {
+      name: userEmail,
+      email: userEmail,
+      avatar: "/avatars/shadcn.jpg",
+    },
+    navMain: [
+      { title: "Dashboard", icon: LayoutDashboardIcon, href: "/dashboard", permission: "dashboard" },
+      { title: "User", icon: Building2Icon, href: "/user", permission: "user" },
+      { title: "Logs", icon: Warehouse, href: "/logs", permission: "logs" },
+    ],
+  }
 
-
-
-  // Helper function to check if user has access to a specific permission
   const hasAccess = (permission) => {
-    if (!userAccessLevels) return false;
+    if (!userAccessLevels) return false
     if (permission === "admin") {
-      return userType === "admin"; // Only allow admin users
+      return userType === "admin"
     }
-    return userAccessLevels[permission] === "true";
-  };
-  
-  // Filter navigation items based on user permissions
+    return userAccessLevels[permission] === "true"
+  }
+
   const filterItemsByPermission = (items) => {
     return items.filter((item) => hasAccess(item.permission))
   }
 
-  // Check if any items in a section have permission
-  const hasSectionAccess = (items) => {
-    return items.some((item) => hasAccess(item.permission))
-  }
-
-  // If still loading, show a simplified sidebar
   if (isLoading) {
     return (
       <Sidebar variant="inset" {...props}>
@@ -120,19 +101,12 @@ export function AppSidebar({ ...props }) {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
-        <SidebarContent>{/* Loading state */}</SidebarContent>
+        <SidebarContent />
       </Sidebar>
     )
   }
 
-  // Filter navigation items based on permissions
   const filteredNavMain = filterItemsByPermission(data.navMain)
-  // const filteredNavSecondary = filterItemsByPermission(data.navSecondary)
-  // const filteredProjects = filterItemsByPermission(data.projects)
-  // const filteredInventory = filterItemsByPermission(data.inventory)
-  // const filteredQr = filterItemsByPermission(data.qr)
-  // const filteredOrder = filterItemsByPermission(data.order)
-  // const filteredProduction = filterItemsByPermission(data.production)
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -148,19 +122,11 @@ export function AppSidebar({ ...props }) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        {/* Only render sections if user has access to at least one item in that section */}
         {filteredNavMain.length > 0 && <NavMain items={filteredNavMain} />}
-        {/* {filteredProjects.length > 0 && <NavProjects projects={filteredProjects} />}
-        {filteredInventory.length > 0 && <NavInventory inventory={filteredInventory} />}
-        {filteredProduction.length > 0 && <NavProduction production={filteredProduction} />}
-        {filteredQr.length > 0 && <NavQr qr={filteredQr} />}
-        {filteredOrder.length > 0 && <NavOrder order={filteredOrder} />}
-        {filteredNavSecondary.length > 0 && <NavSecondary items={filteredNavSecondary} className="mt-auto" />} */}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={{ ...data.user, role: userType }} />
+        <NavUser user={{ ...data.user, role: userType || "user" }} />
       </SidebarFooter>
     </Sidebar>
   )
 }
-

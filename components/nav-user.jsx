@@ -45,6 +45,7 @@ export function NavUser({ user }) {
   const handleLogout = () => {
     // Remove the userName from localStorage
     localStorage.removeItem("userName");
+    localStorage.clear()
     router.push("/login");
   };
 

@@ -17,9 +17,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { firestore, auth } from "@/lib/firebase";
+import { firestore } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { createUserWithEmailAndPassword } from "firebase/auth";
 import toast from "react-hot-toast";
 
 export default function CompanySelection({ selectedCompany, setSelectedCompany }) {
@@ -30,13 +29,9 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
     address: "",
     phone: "",
     contactPersons: "",
-    userName: "",
-    userPhone: "",
-    userEmail: "",
-    userAddress: "",
   });
 
-  // Fetch company names from map keys
+  // Fetch company list from Firestore
   useEffect(() => {
     const fetchCompanies = async () => {
       const companyDocRef = doc(firestore, "dropdownMenu", "companyName");
@@ -51,62 +46,44 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
   }, []);
 
   const handleSave = async () => {
-    const {
-      name,
-      address,
-      phone,
-      contactPersons,
-      userName,
-      userPhone,
-      userEmail,
-      userAddress,
-    } = formData;
+    const { name, address, phone, contactPersons } = formData;
 
-    if (!name || !userName || !userPhone || !userEmail || !userAddress) {
-      toast.error("Please fill all required fields");
+    if (!name) {
+      toast.error("Company name is required");
       return;
     }
 
     try {
-      // Step 1: Create Firebase Auth user (password = phone)
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        userEmail,
-        userPhone // phone used as password
-      );
+      const companyInfo = {
+        name,
+        address,
+        phone,
+        contactPersons,
+      };
 
-      const uid = userCredential.user.uid;
-
-      // Step 2: Save company data inside map
-      const companyDocRef = doc(firestore, "dropdownMenu", "companyName");
+      // Step 1: Add company under dropdownMenu/companyName
+      const dropdownDocRef = doc(firestore, "dropdownMenu", "companyName");
       await setDoc(
-        companyDocRef,
+        dropdownDocRef,
         {
-          [name]: {
-            name,
-            address,
-            phone,
-            contactPersons,
-          },
+          [name.toLowerCase()]: companyInfo,
         },
         { merge: true }
       );
 
-      // Step 3: Save user info inside <company>/users
-      const userDocRef = doc(firestore, name, "users");
-      await setDoc(userDocRef, {
-        uId: uid,
-        userName,
-        userPhone,
-        userEmail,
-        userAddress,
-      });
+      // Step 2: Create company collection with 'details' document
+      const companyDetailsDocRef = doc(firestore, name.toLowerCase(), "details");
+      await setDoc(companyDetailsDocRef, companyInfo);
 
-      // Step 4: Update dropdown UI
-      setCompanies((prev) => [...prev, name]);
+      // Update UI
+      if (!companies.includes(name)) {
+        setCompanies((prev) => [...prev, name]);
+      }
+
       setSelectedCompany(name);
+      localStorage.setItem("selectedCompany", name);
       setOpenDialog(false);
-      toast.success("Company and user created!");
+      toast.success("Company added and details saved!");
 
       // Reset form
       setFormData({
@@ -114,14 +91,10 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
         address: "",
         phone: "",
         contactPersons: "",
-        userName: "",
-        userPhone: "",
-        userEmail: "",
-        userAddress: "",
       });
     } catch (err) {
       console.error(err);
-      toast.error(err.message || "Failed to create user or company");
+      toast.error("Failed to save company");
     }
   };
 
@@ -134,6 +107,7 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
             setOpenDialog(true);
           } else {
             setSelectedCompany(value);
+            localStorage.setItem("selectedCompany", value);
           }
         }}
       >
@@ -156,7 +130,6 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
             <DialogTitle>Add New Company</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Company Info */}
             <Input
               placeholder="Company Name"
               value={formData.name}
@@ -175,33 +148,9 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
             <Input
               placeholder="Contact Persons"
               value={formData.contactPersons}
-              onChange={(e) => setFormData({ ...formData, contactPersons: e.target.value })}
-            />
-
-            {/* Divider */}
-            <hr />
-            <p className="text-sm font-semibold">User Info</p>
-
-            {/* User Info */}
-            <Input
-              placeholder="User Name"
-              value={formData.userName}
-              onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
-            />
-            <Input
-              placeholder="User Phone"
-              value={formData.userPhone}
-              onChange={(e) => setFormData({ ...formData, userPhone: e.target.value })}
-            />
-            <Input
-              placeholder="User Email"
-              value={formData.userEmail}
-              onChange={(e) => setFormData({ ...formData, userEmail: e.target.value })}
-            />
-            <Input
-              placeholder="User Address"
-              value={formData.userAddress}
-              onChange={(e) => setFormData({ ...formData, userAddress: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, contactPersons: e.target.value })
+              }
             />
           </div>
           <DialogFooter>
