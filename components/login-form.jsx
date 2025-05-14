@@ -56,6 +56,7 @@ export function LoginForm({ className, ...props }) {
             JSON.stringify({
               dashboard: "true",
               logs: "true",
+              company:"true",
             })
           );
           showToast({

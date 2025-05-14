@@ -15,6 +15,7 @@ import {
   Factory,
   Store,
   ScrollText,
+  Building2
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -78,25 +79,8 @@ export function AppSidebar({ ...props }) {
   },
   navMain: [
     { title: "Dashboard", icon: LayoutDashboardIcon, href: "/dashboard", permission: "dashboard" },
+    {title:"Manage Company", icon: Building2, href:"/company",permission:"company"},
     { title: "Logs", icon: Warehouse, href: "/logs", permission: "logs" },
-  ],
-  navSecondary: [
-    { title: "Alerts", icon: Bell, href: "/alerts", permission: "alerts" },
-  ],
-  projects: [
-    { title: "Project Alpha", icon: BoxIcon, href: "/projects/alpha", permission: "projects" },
-  ],
-  inventory: [
-    { title: "Inventory", icon: BoxIcon, href: "/inventory", permission: "inventory" },
-  ],
-  qr: [
-    { title: "QR Code", icon: QrCode, href: "/qr", permission: "qr" },
-  ],
-  order: [
-    { title: "Orders", icon: Truck, href: "/orders", permission: "orders" },
-  ],
-  production: [
-    { title: "Production", icon: Factory, href: "/production", permission: "production" },
   ],
 }
 
@@ -143,12 +127,12 @@ export function AppSidebar({ ...props }) {
 
   // Filter navigation items based on permissions
   const filteredNavMain = filterItemsByPermission(data.navMain)
-  const filteredNavSecondary = filterItemsByPermission(data.navSecondary)
-  const filteredProjects = filterItemsByPermission(data.projects)
-  const filteredInventory = filterItemsByPermission(data.inventory)
-  const filteredQr = filterItemsByPermission(data.qr)
-  const filteredOrder = filterItemsByPermission(data.order)
-  const filteredProduction = filterItemsByPermission(data.production)
+  // const filteredNavSecondary = filterItemsByPermission(data.navSecondary)
+  // const filteredProjects = filterItemsByPermission(data.projects)
+  // const filteredInventory = filterItemsByPermission(data.inventory)
+  // const filteredQr = filterItemsByPermission(data.qr)
+  // const filteredOrder = filterItemsByPermission(data.order)
+  // const filteredProduction = filterItemsByPermission(data.production)
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -166,12 +150,12 @@ export function AppSidebar({ ...props }) {
       <SidebarContent>
         {/* Only render sections if user has access to at least one item in that section */}
         {filteredNavMain.length > 0 && <NavMain items={filteredNavMain} />}
-        {filteredProjects.length > 0 && <NavProjects projects={filteredProjects} />}
+        {/* {filteredProjects.length > 0 && <NavProjects projects={filteredProjects} />}
         {filteredInventory.length > 0 && <NavInventory inventory={filteredInventory} />}
         {filteredProduction.length > 0 && <NavProduction production={filteredProduction} />}
         {filteredQr.length > 0 && <NavQr qr={filteredQr} />}
         {filteredOrder.length > 0 && <NavOrder order={filteredOrder} />}
-        {filteredNavSecondary.length > 0 && <NavSecondary items={filteredNavSecondary} className="mt-auto" />}
+        {filteredNavSecondary.length > 0 && <NavSecondary items={filteredNavSecondary} className="mt-auto" />} */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={{ ...data.user, role: userType }} />

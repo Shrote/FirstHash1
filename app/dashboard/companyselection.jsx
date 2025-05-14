@@ -30,13 +30,9 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
     address: "",
     phone: "",
     contactPersons: "",
-    userName: "",
-    userPhone: "",
-    userEmail: "",
-    userAddress: "",
   });
 
-  // Fetch company names from map keys
+  // Fetch companies from Firestore
   useEffect(() => {
     const fetchCompanies = async () => {
       const companyDocRef = doc(firestore, "dropdownMenu", "companyName");
@@ -50,75 +46,47 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
     fetchCompanies();
   }, []);
 
-  const handleSave = async () => {
-    const {
-      name,
-      address,
-      phone,
-      contactPersons,
-      userName,
-      userPhone,
-      userEmail,
-      userAddress,
-    } = formData;
+  const validate = () => {
+    const newErrors = {};
 
-    if (!name || !userName || !userPhone || !userEmail || !userAddress) {
-      toast.error("Please fill all required fields");
+    if (!formData.name.trim()) newErrors.name = "Company name is required.";
+    if (!formData.address.trim()) newErrors.address = "Address is required.";
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone number is required.";
+    } else if (!/^\d{10}$/.test(formData.phone)) {
+      newErrors.phone = "Phone must be 10 digits.";
+    }
+
+    if (!formData.contactPersons.trim()) newErrors.contactPersons = "Contact person is required.";
+
+    if (formData.registrationNumer.trim() && !/^[A-Za-z0-9\-]+$/.test(formData.registrationNumer)) {
+      newErrors.registrationNumer = "Invalid registration number format.";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = async () => {
+    const { name, address, phone, contactPersons } = formData;
+
+    if (!name) {
+      toast.error("Company name is required");
       return;
     }
 
     try {
-      // Step 1: Create Firebase Auth user (password = phone)
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        userEmail,
-        userPhone // phone used as password
-      );
-
-      const uid = userCredential.user.uid;
-
-      // Step 2: Save company data inside map
-      const companyDocRef = doc(firestore, "dropdownMenu", "companyName");
-      await setDoc(
-        companyDocRef,
-        {
-          [name]: {
-            name,
-            address,
-            phone,
-            contactPersons,
-          },
-        },
-        { merge: true }
-      );
-
-      // Step 3: Save user info inside <company>/users
-      const userDocRef = doc(firestore, name, "users");
-      await setDoc(userDocRef, {
-        uId: uid,
-        userName,
-        userPhone,
-        userEmail,
-        userAddress,
+      await setDoc(doc(firestore, "companyName", name), {
+        name,
+        address,
+        phone,
+        contactPersons,
       });
-
-      // Step 4: Update dropdown UI
-      setCompanies((prev) => [...prev, name]);
+      setCompanies(prev => [...prev, name]);
       setSelectedCompany(name);
       setOpenDialog(false);
-      toast.success("Company and user created!");
-
-      // Reset form
-      setFormData({
-        name: "",
-        address: "",
-        phone: "",
-        contactPersons: "",
-        userName: "",
-        userPhone: "",
-        userEmail: "",
-        userAddress: "",
-      });
+      toast.success("Company added successfully!");
+      setFormData({ name: "", address: "", phone: "", contactPersons: "" });
     } catch (err) {
       console.error(err);
       toast.error(err.message || "Failed to create user or company");
@@ -156,52 +124,25 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
             <DialogTitle>Add New Company</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Company Info */}
             <Input
               placeholder="Company Name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
             />
             <Input
               placeholder="Company Address"
               value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              onChange={e => setFormData({ ...formData, address: e.target.value })}
             />
             <Input
-              placeholder="Company Phone"
+              placeholder="Phone"
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              onChange={e => setFormData({ ...formData, phone: e.target.value })}
             />
             <Input
               placeholder="Contact Persons"
               value={formData.contactPersons}
-              onChange={(e) => setFormData({ ...formData, contactPersons: e.target.value })}
-            />
-
-            {/* Divider */}
-            <hr />
-            <p className="text-sm font-semibold">User Info</p>
-
-            {/* User Info */}
-            <Input
-              placeholder="User Name"
-              value={formData.userName}
-              onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
-            />
-            <Input
-              placeholder="User Phone"
-              value={formData.userPhone}
-              onChange={(e) => setFormData({ ...formData, userPhone: e.target.value })}
-            />
-            <Input
-              placeholder="User Email"
-              value={formData.userEmail}
-              onChange={(e) => setFormData({ ...formData, userEmail: e.target.value })}
-            />
-            <Input
-              placeholder="User Address"
-              value={formData.userAddress}
-              onChange={(e) => setFormData({ ...formData, userAddress: e.target.value })}
+              onChange={e => setFormData({ ...formData, contactPersons: e.target.value })}
             />
           </div>
           <DialogFooter>
