@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { firestore } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, doc, getDocs } from "firebase/firestore";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   Breadcrumb,
@@ -29,6 +29,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import AddUserForm from "@/components/AddUserForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function Page() {
   const [users, setUsers] = useState([]);
@@ -39,30 +46,31 @@ export default function Page() {
   const router = useRouter();
 
   // Fetch Users from Firestore
-  const fetchUsers = useCallback(async () => {
-    try {
-      const usersCollection = collection(firestore, "users");
-      const userDocs = await getDocs(usersCollection);
-      const usersData = userDocs.docs
-        .map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            createdAt: data.createdAt ? new Date(data.createdAt) : null, // Convert string to Date object
-          };
-        })
-        .sort(
-          (a, b) =>
-            (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)
-        ); // Sort newest first
+ const fetchUsers = useCallback(async () => {
+  try {
+    const usersCollection = collection(firestore, "users");
+    const userDocs = await getDocs(usersCollection);
+    const usersData = userDocs.docs
+      .map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : null, // Ensure JS Date
+        };
+      })
+      .sort(
+        (a, b) =>
+          (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0)
+      );
 
-      setUsers(usersData);
-      setFilteredUsers(usersData);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-    }
-  }, []);
+    setUsers(usersData);
+    setFilteredUsers(usersData);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+  }
+}, []);
+
 
   useEffect(() => {
     fetchUsers();
@@ -95,6 +103,12 @@ export default function Page() {
     setIsModalOpen(false);
     fetchUsers();
   };
+//   const handleViewUser = (userId) => {
+//   router.push(`/user/${userId}`);
+// };
+
+  
+
 
   return (
     <SidebarProvider>
@@ -165,9 +179,11 @@ export default function Page() {
                   <TableCell>{user.gender || "N/A"}</TableCell>
                   <TableCell>{user.email || "N/A"}</TableCell>
                   <TableCell>{user.phone || "N/A"}</TableCell>
-                  <TableCell>
-                    {new Date(user.createdAt).toLocaleString() || "N/A"}
-                  </TableCell>
+                 <TableCell>
+  {user.createdAt ? user.createdAt.toLocaleString() : "N/A"}
+</TableCell>
+
+
                   <TableCell>{user.userType || "N/A"}</TableCell>
                   <TableCell>
                     <span
@@ -192,13 +208,14 @@ export default function Page() {
         </div>
 
         {/* AddUserForm Component */}
-        {isModalOpen && (
-          <AddUserForm
-            isOpen={isModalOpen}
-            onClose={handleCloseModal}
-            onUserAdded={fetchUsers}
-          />
-        )}
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Add New User</DialogTitle>
+            </DialogHeader>
+            <AddUserForm onClose={handleCloseModal} />
+          </DialogContent>
+        </Dialog>
       </SidebarInset>
     </SidebarProvider>
   );

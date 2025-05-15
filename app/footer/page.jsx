@@ -14,7 +14,7 @@ export default function Footer() {
           rel="noopener noreferrer"
           className="text-blue-400 hover:underline"
         >
-          Electromotion e-Vidyut Vehicles Pvt. Ltd.
+          Shrote Technologies.
         </a>
         {' '}for{' '}
         <a 
@@ -23,7 +23,7 @@ export default function Footer() {
           rel="noopener noreferrer" 
           className="text-blue-400 hover:underline"
         >
-          Q PO Automotive India Pvt. Ltd.
+          First Hash.
         </a>
       </p>
       <span className="absolute right-4 bottom-4 text-xs text-gray-300">

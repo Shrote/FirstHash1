@@ -4,8 +4,8 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "Q PO Matrix",
-  description: "Developed by Electromotion",
+  title: "First Hash",
+  description: "Developed by Shrote",
 }
 
 export default function RootLayout({ children }) {
