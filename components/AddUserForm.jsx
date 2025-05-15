@@ -1,32 +1,32 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { auth, firestore } from '@/lib/firebase'
-import { createUserWithEmailAndPassword } from 'firebase/auth'
-import { doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore'
-import { toast } from '@/components/ui/use-toast'
-import { useToast } from '@/hooks/use-toast'
-import { date } from 'zod'
+import { useState } from "react";
+import { auth, firestore } from "@/lib/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { date } from "zod";
 
 export default function AddUserForm({ onClose }) {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    userType: '',
-    gender: '',
-    role: '',
-  })
-   const { toast } = useToast();
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    userType: "",
+    gender: "",
+    role: "",
+  });
+  const { toast } = useToast();
 
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     try {
       // Use phone as password just for example (NOT RECOMMENDED in production)
@@ -34,31 +34,39 @@ export default function AddUserForm({ onClose }) {
         auth,
         formData.email,
         formData.phone
-      )
+      );
 
-      const uid = userCredential.user.uid
+      const uid = userCredential.user.uid;
 
-      await setDoc(doc(firestore, 'users', uid), {
+      await setDoc(doc(firestore, "users", uid), {
         ...formData,
         createdAt: serverTimestamp(),
-        profileStatus: 'Active',
-      })
+        profileStatus: "Active",
+        accessLevelMap: {
+          company: true,
+          user: true,
+          dashboard: true,
+          logs: true,
+          employee:true,
+          client:true,
+        },
+      });
 
       toast({
-        title: 'User created',
+        title: "User created",
         description: `Profile for ${formData.name} saved successfully.`,
-      })
+      });
 
-      if (onClose) onClose() // Close popup
+      if (onClose) onClose(); // Close popup
     } catch (error) {
-      console.error('Error:', error)
+      console.error("Error:", error);
       toast({
-        variant: 'destructive',
-        title: 'Error creating user',
+        variant: "destructive",
+        title: "Error creating user",
         description: error.message,
-      })
+      });
     }
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-4">
@@ -144,5 +152,5 @@ export default function AddUserForm({ onClose }) {
         Save User
       </button>
     </form>
-  )
+  );
 }

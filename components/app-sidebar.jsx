@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboardIcon,
   Warehouse,
-  Building2Icon
+  Building2Icon,
+  Factory
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -19,6 +20,18 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+
+// Helper function to safely parse access levels from localStorage
+function parseAccessLevels(str) {
+  try {
+    const raw = JSON.parse(str)
+    return Object.fromEntries(
+      Object.entries(raw).map(([key, value]) => [key, value === true || value === "true"])
+    )
+  } catch {
+    return {}
+  }
+}
 
 export function AppSidebar({ ...props }) {
   const pathname = usePathname()
@@ -39,14 +52,14 @@ export function AppSidebar({ ...props }) {
         console.log("Fetched userEmail:", userEmailStr)
 
         if (accessLevelsStr) {
-          const accessLevels = JSON.parse(accessLevelsStr)
+          const accessLevels = parseAccessLevels(accessLevelsStr)
           setUserAccessLevels(accessLevels)
         } else {
           // fallback for development
           setUserAccessLevels({
-            dashboard: "true",
-            user: "true",
-            logs: "true"
+            dashboard: true,
+            user: true,
+            logs: true,
           })
         }
 
@@ -72,6 +85,7 @@ export function AppSidebar({ ...props }) {
       { title: "Dashboard", icon: LayoutDashboardIcon, href: "/dashboard", permission: "dashboard" },
       { title: "User", icon: Building2Icon, href: "/user", permission: "user" },
       { title: "Logs", icon: Warehouse, href: "/logs", permission: "logs" },
+      { title: "Company", icon: Factory, href: "/company", permission: "company"},
     ],
   }
 
@@ -80,7 +94,7 @@ export function AppSidebar({ ...props }) {
     if (permission === "admin") {
       return userType === "admin"
     }
-    return userAccessLevels[permission] === "true"
+    return !!userAccessLevels[permission]
   }
 
   const filterItemsByPermission = (items) => {
