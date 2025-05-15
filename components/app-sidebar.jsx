@@ -6,7 +6,9 @@ import {
   LayoutDashboardIcon,
   Warehouse,
   Building2Icon,
-  Factory
+  Factory,
+  User,
+  User2
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -86,6 +88,9 @@ export function AppSidebar({ ...props }) {
       { title: "User", icon: Building2Icon, href: "/user", permission: "user" },
       { title: "Logs", icon: Warehouse, href: "/logs", permission: "logs" },
       { title: "Company", icon: Factory, href: "/company", permission: "company"},
+      { title: "Client", icon: User, href: "/client", permission: "client"},
+      { title: "Employee", icon: User2, href: "/employee", permission: "employee"},
+
     ],
   }
 
