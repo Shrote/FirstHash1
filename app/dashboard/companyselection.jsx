@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Select,
   SelectTrigger,
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { firestore } from "@/lib/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc,Timestamp } from "firebase/firestore";
 import toast from "react-hot-toast";
 
 export default function CompanySelection({ selectedCompany, setSelectedCompany }) {
@@ -27,76 +27,99 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
   const [formData, setFormData] = useState({
     name: "",
     address: "",
+    email: "",
     phone: "",
     contactPersons: "",
+    registrationNumber: "",
+    status: "Active",
   });
 
-  // Fetch company list from Firestore
+  const [formErrors, setFormErrors] = useState({});
+
   useEffect(() => {
     const fetchCompanies = async () => {
-      const companyDocRef = doc(firestore, "dropdownMenu", "companyName");
-      const snapshot = await getDoc(companyDocRef);
+      const docRef = doc(firestore, "dropdownMenu", "companyName");
+      const snapshot = await getDoc(docRef);
       if (snapshot.exists()) {
-        const data = snapshot.data();
-        const names = Object.keys(data);
+        const names = Object.keys(snapshot.data());
         setCompanies(names);
       }
     };
     fetchCompanies();
   }, []);
 
-  const handleSave = async () => {
-    const { name, address, phone, contactPersons } = formData;
+  const handleChange = (key, value) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+    setFormErrors((prev) => ({ ...prev, [key]: "" }));
+  };
 
-    if (!name) {
-      toast.error("Company name is required");
-      return;
+  const validateForm = () => {
+    const errors = {};
+    const { name, email, phone } = formData;
+
+    if (!name.trim()) {
+      errors.name = "Company name is required.";
     }
 
-    try {
-      const companyInfo = {
-        name,
-        address,
-        phone,
-        contactPersons,
-      };
+    if (!email.trim()) {
+      errors.email = "Email is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = "Invalid email format.";
+    }
 
-      // Step 1: Add company under dropdownMenu/companyName
-      const dropdownDocRef = doc(firestore, "dropdownMenu", "companyName");
+    if (!phone.trim()) {
+      errors.phone = "Phone number is required.";
+    } else if (!/^\d{10}$/.test(phone)) {
+      errors.phone = "Phone number must be 10 digits.";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSave = useCallback(async () => {
+    if (!validateForm()) return;
+
+    const companyId = formData.name.toLowerCase();
+
+    const companyInfo = {
+      ...formData,
+      createdAt: Timestamp.now(),
+    };
+
+    try {
       await setDoc(
-        dropdownDocRef,
-        {
-          [name.toLowerCase()]: companyInfo,
-        },
+        doc(firestore, "dropdownMenu", "companyName"),
+        { [companyId]: companyInfo },
         { merge: true }
       );
 
-      // Step 2: Create company collection with 'details' document
-      const companyDetailsDocRef = doc(firestore, name.toLowerCase(), "details");
-      await setDoc(companyDetailsDocRef, companyInfo);
+      await setDoc(doc(firestore, companyId, "details"), companyInfo);
 
-      // Update UI
-      if (!companies.includes(name)) {
-        setCompanies((prev) => [...prev, name]);
+      if (!companies.includes(formData.name)) {
+        setCompanies((prev) => [...prev, formData.name]);
       }
 
-      setSelectedCompany(name);
-      localStorage.setItem("selectedCompany", name);
+      setSelectedCompany(formData.name);
+      localStorage.setItem("selectedCompany", formData.name);
       setOpenDialog(false);
-      toast.success("Company added and details saved!");
+      toast.success("Company added successfully");
 
-      // Reset form
       setFormData({
         name: "",
         address: "",
+        email: "",
         phone: "",
         contactPersons: "",
+        registrationNumber: "",
+        status: "Active",
       });
+      setFormErrors({});
     } catch (err) {
       console.error(err);
       toast.error("Failed to save company");
     }
-  };
+  }, [formData, companies, setSelectedCompany]);
 
   return (
     <>
@@ -130,28 +153,25 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
             <DialogTitle>Add New Company</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <Input
-              placeholder="Company Name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            />
-            <Input
-              placeholder="Company Address"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            />
-            <Input
-              placeholder="Company Phone"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            />
-            <Input
-              placeholder="Contact Persons"
-              value={formData.contactPersons}
-              onChange={(e) =>
-                setFormData({ ...formData, contactPersons: e.target.value })
-              }
-            />
+            {[
+              { label: "Company Name", key: "name" },
+              { label: "Company Address", key: "address" },
+              { label: "Company Email", key: "email" },
+              { label: "Company Phone", key: "phone" },
+              { label: "Contact Person", key: "contactPersons" },
+              { label: "Registration Number", key: "registrationNumber" },
+            ].map(({ label, key }) => (
+              <div key={key}>
+                <Input
+                  placeholder={label}
+                  value={formData[key]}
+                  onChange={(e) => handleChange(key, e.target.value)}
+                />
+                {formErrors[key] && (
+                  <p className="text-sm text-red-500 mt-1">{formErrors[key]}</p>
+                )}
+              </div>
+            ))}
           </div>
           <DialogFooter>
             <Button onClick={handleSave}>Save</Button>
