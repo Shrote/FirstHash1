@@ -54,97 +54,53 @@ export default function Page() {
     fetchCompanyDetails();
   }, [selectedCompany]);
 
-  // // Fetch users
-  // useEffect(() => {
-  //   const fetchUsers = async () => {
-  //     if (!selectedCompany) return;
-  //     try {
-  //       const userDocRef = doc(firestore, selectedCompany, "users");
-  //       const snapshot = await getDoc(userDocRef);
-  //       if (snapshot.exists()) {
-  //         const data = snapshot.data();
-  //         const usersArray = data.users || [];
-
-  //         const formattedUsers = usersArray.map((entry) => {
-  //           const [uid, userData] = Object.entries(entry)[0];
-  //           return { uid, ...userData };
-  //         });
-
-  //         setUsers(formattedUsers);
-  //       } else {
-  //         setUsers([]);
-  //         toast.error("No users found for this company.");
-  //       }
-  //     } catch (err) {
-  //       toast.error("Error fetching users.");
-  //       console.error(err);
-  //     }
-  //   };
-
-  //   fetchUsers();
-  // }, [selectedCompany]);
-
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Toaster position="top-right" reverseOrder={false} />
-        <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b">
-          <div className="flex items-center gap-2 w-full">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Dashboard</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-            <div className="ml-auto flex items-center gap-2">
-              <CompanySelection
-                selectedCompany={selectedCompany}
-                setSelectedCompany={(value) => {
-                  setSelectedCompany(value);
-                  localStorage.setItem("selectedCompany", value);
-                }}
-              />
-            </div>
+    <>
+      <Toaster position="top-right" reverseOrder={false} />
+      <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b">
+        <div className="flex items-center gap-2 w-full">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbPage>Dashboard</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="ml-auto flex items-center gap-2">
+            <CompanySelection
+              selectedCompany={selectedCompany}
+              setSelectedCompany={(value) => {
+                setSelectedCompany(value);
+                localStorage.setItem("selectedCompany", value);
+              }}
+            />
           </div>
-        </header>
-        <main className="p-4">
-          {/* Company Details */}
-          {companyDetails && (
-            <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-              <h2 className="text-lg font-semibold mb-2">
-                Company Details: {selectedCompany}
-              </h2>
-              <p><strong>Name:</strong> {companyDetails.name}</p>
-              <p><strong>Address:</strong> {companyDetails.address}</p>
-              <p><strong>Phone:</strong> {companyDetails.phone}</p>
-              <p><strong>Contact Persons:</strong> {companyDetails.contactPersons}</p>
-            </div>
-          )}
-
-          {/* User List
-          <h2 className="text-lg font-semibold mb-4">
-            Users in {selectedCompany}
-          </h2>
-          <ul className="space-y-2">
-            {users.length > 0 ? (
-              users.map((user) => (
-                <li key={user.uid} className="p-3 border rounded-md">
-                  <p><strong>Name:</strong> {user.userName}</p>
-                  <p><strong>Email:</strong> {user.userEmail}</p>
-                  <p><strong>Phone:</strong> {user.userPhone}</p>
-                  <p><strong>Address:</strong> {user.userAddress}</p>
-                </li>
-              ))
-            ) : (
-              <p>No users to display.</p>
-            )}
-          </ul> */}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+        </div>
+      </header>
+      <main className="p-4">
+        {/* Company Details */}
+        {companyDetails && (
+          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+            <h2 className="text-lg font-semibold mb-2">
+              Company Details: {selectedCompany}
+            </h2>
+            <p>
+              <strong>Name:</strong> {companyDetails.name}
+            </p>
+            <p>
+              <strong>Address:</strong> {companyDetails.address}
+            </p>
+            <p>
+              <strong>Phone:</strong> {companyDetails.phone}
+            </p>
+            <p>
+              <strong>Contact Person:</strong> {companyDetails.contactPerson}
+            </p>
+          </div>
+        )}
+      </main>
+    </>
   );
 }

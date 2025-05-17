@@ -87,7 +87,6 @@ export default function UserProfile() {
     }
   };
 
-
   const handleStatusToggle = async (checked) => {
     if (!params.id) return;
 
@@ -120,7 +119,10 @@ export default function UserProfile() {
     if (file) {
       try {
         const compressedFile = await compressImage(file);
-        const imageRef = ref(storage, `users/${Date.now()}_${compressedFile.name}`);
+        const imageRef = ref(
+          storage,
+          `users/${Date.now()}_${compressedFile.name}`
+        );
         const snapshot = await uploadBytes(imageRef, compressedFile);
         const downloadURL = await getDownloadURL(snapshot.ref);
 
@@ -165,222 +167,216 @@ export default function UserProfile() {
     : [];
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbPage href="/user">Users</BreadcrumbPage>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{updatedUser.name}</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
-        <main className="p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">User Profile</CardTitle>
-              <div className="flex items-center gap-4 ml-auto mt-[-4px]">
-                <Label className="text-lg font-semibold">User Status</Label>
-                <Switch
-                  checked={isActive}
-                  onCheckedChange={handleStatusToggle}
-                />
-                <span
-                  className={`text-xl font-bold ${
-                    isActive ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {isActive ? "ACTIVE" : "INACTIVE"}
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Name
-                    </label>
-                    <Input
-                      type="text"
-                      name="name"
-                      value={updatedUser.name || ""}
-                      onChange={handleInputChange}
-                      disabled={!isEditable}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Gender
-                    </label>
-                    <Input
-                      type="text"
-                      name="gender"
-                      value={updatedUser.gender || ""}
-                      onChange={handleInputChange}
-                      disabled={!isEditable}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Email
-                    </label>
-                    <Input
-                      type="email"
-                      name="email"
-                      value={updatedUser.email || ""}
-                      onChange={handleInputChange}
-                      disabled={!isEditable}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Phone
-                    </label>
-                    <Input
-                      type="text"
-                      name="phone"
-                      value={updatedUser.phone || ""}
-                      onChange={handleInputChange}
-                      disabled={!isEditable}
-                      className="mt-1"
-                    />
-                  </div>
-                  {updatedUser.userType === "Sales" && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Agent ID
-                      </label>
-                      <Input
-                        type="text"
-                        name="agentId"
-                        value={updatedUser.agentId || ""}
-                        onChange={handleInputChange}
-                        disabled={!isEditable}
-                        className="mt-1"
-                      />
-                    </div>
-                  )}
+    <>
+      <header className="flex h-16 shrink-0 items-center gap-2">
+        <div className="flex items-center gap-2 px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbPage href="/user">Users</BreadcrumbPage>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{updatedUser.name}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+      </header>
+      <main className="p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">User Profile</CardTitle>
+            <div className="flex items-center gap-4 ml-auto mt-[-4px]">
+              <Label className="text-lg font-semibold">User Status</Label>
+              <Switch checked={isActive} onCheckedChange={handleStatusToggle} />
+              <span
+                className={`text-xl font-bold ${
+                  isActive ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {isActive ? "ACTIVE" : "INACTIVE"}
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Name
+                  </label>
+                  <Input
+                    type="text"
+                    name="name"
+                    value={updatedUser.name || ""}
+                    onChange={handleInputChange}
+                    disabled={!isEditable}
+                    className="mt-1"
+                  />
                 </div>
-                <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Gender
+                  </label>
+                  <Input
+                    type="text"
+                    name="gender"
+                    value={updatedUser.gender || ""}
+                    onChange={handleInputChange}
+                    disabled={!isEditable}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Email
+                  </label>
+                  <Input
+                    type="email"
+                    name="email"
+                    value={updatedUser.email || ""}
+                    onChange={handleInputChange}
+                    disabled={!isEditable}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Phone
+                  </label>
+                  <Input
+                    type="text"
+                    name="phone"
+                    value={updatedUser.phone || ""}
+                    onChange={handleInputChange}
+                    disabled={!isEditable}
+                    className="mt-1"
+                  />
+                </div>
+                {updatedUser.userType === "Sales" && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
-                      Profile Image
+                      Agent ID
                     </label>
-                    <div className="mt-1 flex items-center">
-                      <img
-                        src={updatedUser.profileImage || "/placeholder.png"}
-                        alt="Profile"
-                        className="h-32 w-32 object-cover rounded-md"
+                    <Input
+                      type="text"
+                      name="agentId"
+                      value={updatedUser.agentId || ""}
+                      onChange={handleInputChange}
+                      disabled={!isEditable}
+                      className="mt-1"
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Profile Image
+                  </label>
+                  <div className="mt-1 flex items-center">
+                    <img
+                      src={updatedUser.profileImage || "/placeholder.png"}
+                      alt="Profile"
+                      className="h-32 w-32 object-cover rounded-md"
+                    />
+                    {isEditable && (
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfileImageChange}
+                        className="ml-4"
                       />
-                      {isEditable && (
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleProfileImageChange}
-                          className="ml-4"
-                        />
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      User Type
-                    </label>
-                    <Input
-                      type="text"
-                      name="userType"
-                      value={updatedUser.userType || ""}
-                      onChange={handleInputChange}
-                      disabled={!isEditable}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Address
-                    </label>
-                    <Input
-                      type="text"
-                      name="address"
-                      value={updatedUser.address || ""}
-                      onChange={handleInputChange}
-                      disabled={!isEditable}
-                      className="mt-1"
-                    />
+                    )}
                   </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    User Type
+                  </label>
+                  <Input
+                    type="text"
+                    name="userType"
+                    value={updatedUser.userType || ""}
+                    onChange={handleInputChange}
+                    disabled={!isEditable}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Address
+                  </label>
+                  <Input
+                    type="text"
+                    name="address"
+                    value={updatedUser.address || ""}
+                    onChange={handleInputChange}
+                    disabled={!isEditable}
+                    className="mt-1"
+                  />
+                </div>
               </div>
-              <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Access Levels
-                </h3>
-                <div className="mt-2 grid grid-cols-2 gap-4">
-                  {isEditable
-                    ? Object.entries(updatedUser.accessLevels || {}).map(
-                        ([key, value]) => (
-                          <div key={key} className="flex items-center">
-                            <input
-                              type="checkbox"
-                              name={key}
-                              checked={value === "true"}
-                              onChange={handleAccessLevelChange}
-                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                            />
-                            <label className="ml-2 block text-sm text-gray-900">
-                              {key.charAt(0).toUpperCase() + key.slice(1)}
-                            </label>
-                          </div>
-                        )
-                      )
-                    : trueAccessLevels.map(([key]) => (
+            </div>
+            <div className="mt-6">
+              <h3 className="text-lg font-medium text-gray-900">
+                Access Levels
+              </h3>
+              <div className="mt-2 grid grid-cols-2 gap-4">
+                {isEditable
+                  ? Object.entries(updatedUser.accessLevels || {}).map(
+                      ([key, value]) => (
                         <div key={key} className="flex items-center">
-                          <svg
-                            className="h-5 w-5 text-green-500"
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            aria-hidden="true"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          <span className="ml-2 text-sm text-gray-900">
+                          <input
+                            type="checkbox"
+                            name={key}
+                            checked={value === "true"}
+                            onChange={handleAccessLevelChange}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          />
+                          <label className="ml-2 block text-sm text-gray-900">
                             {key.charAt(0).toUpperCase() + key.slice(1)}
-                          </span>
+                          </label>
                         </div>
-                      ))}
-                </div>
+                      )
+                    )
+                  : trueAccessLevels.map(([key]) => (
+                      <div key={key} className="flex items-center">
+                        <svg
+                          className="h-5 w-5 text-green-500"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span className="ml-2 text-sm text-gray-900">
+                          {key.charAt(0).toUpperCase() + key.slice(1)}
+                        </span>
+                      </div>
+                    ))}
               </div>
-            </CardContent>
-          </Card>
-          <div className="mt-6 flex justify-between">
-            <Button onClick={() => router.push("/user")} variant="default">
-              Back to Users List
-            </Button>
-            <Button onClick={handleSaveOrEdit} variant="default">
-              {isEditable ? "Save Changes" : "Edit Profile"}
-            </Button>
-          </div>
-        </main>
-        <ToastContainer />
-      </SidebarInset>
-    </SidebarProvider>
+            </div>
+          </CardContent>
+        </Card>
+        <div className="mt-6 flex justify-between">
+          <Button onClick={() => router.push("/user")} variant="default">
+            Back to Users List
+          </Button>
+          <Button onClick={handleSaveOrEdit} variant="default">
+            {isEditable ? "Save Changes" : "Edit Profile"}
+          </Button>
+        </div>
+      </main>
+      <ToastContainer />
+    </>
   );
 }

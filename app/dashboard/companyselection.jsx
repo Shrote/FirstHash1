@@ -18,10 +18,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { firestore } from "@/lib/firebase";
-import { doc, getDoc, setDoc,Timestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import toast from "react-hot-toast";
 
-export default function CompanySelection({ selectedCompany, setSelectedCompany }) {
+export default function CompanySelection({
+  selectedCompany,
+  setSelectedCompany,
+}) {
   const [companies, setCompanies] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
@@ -29,7 +32,7 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
     address: "",
     email: "",
     phone: "",
-    contactPersons: "",
+    contactPerson: "",
     registrationNumber: "",
     status: "Active",
   });
@@ -43,6 +46,10 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
       if (snapshot.exists()) {
         const names = Object.keys(snapshot.data());
         setCompanies(names);
+        if (!selectedCompany)
+        {
+          setSelectedCompany(names[0])
+        }
       }
     };
     fetchCompanies();
@@ -105,21 +112,25 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
       setOpenDialog(false);
       toast.success("Company added successfully");
 
-      setFormData({
-        name: "",
-        address: "",
-        email: "",
-        phone: "",
-        contactPersons: "",
-        registrationNumber: "",
-        status: "Active",
-      });
-      setFormErrors({});
+      resetdata();
     } catch (err) {
       console.error(err);
       toast.error("Failed to save company");
     }
   }, [formData, companies, setSelectedCompany]);
+
+  function resetdata() {
+    setFormData({
+      name: "",
+      address: "",
+      email: "",
+      phone: "",
+      contactPerson: "",
+      registrationNumber: "",
+      status: "Active",
+    });
+    setFormErrors({});
+  }
 
   return (
     <>
@@ -147,7 +158,13 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
         </SelectContent>
       </Select>
 
-      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+      <Dialog
+        open={openDialog}
+        onOpenChange={() => {
+          setOpenDialog(false);
+          resetdata();
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add New Company</DialogTitle>
@@ -158,10 +175,13 @@ export default function CompanySelection({ selectedCompany, setSelectedCompany }
               { label: "Company Address", key: "address" },
               { label: "Company Email", key: "email" },
               { label: "Company Phone", key: "phone" },
-              { label: "Contact Person", key: "contactPersons" },
+              { label: "Contact Person", key: "contactPerson" },
               { label: "Registration Number", key: "registrationNumber" },
             ].map(({ label, key }) => (
               <div key={key}>
+                <label className="block text-sm font-medium mb-1">
+                  {label}
+                </label>
                 <Input
                   placeholder={label}
                   value={formData[key]}

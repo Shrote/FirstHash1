@@ -88,9 +88,7 @@ export function AppSidebar({ ...props }) {
       { title: "User", icon: Building2Icon, href: "/user", permission: "user" },
       { title: "Logs", icon: Warehouse, href: "/logs", permission: "logs" },
       { title: "Company", icon: Factory, href: "/company", permission: "company"},
-      { title: "Client", icon: User, href: "/client", permission: "client"},
-      { title: "Employee", icon: User2, href: "/employee", permission: "employee"},
-
+      { title: "Client", icon: User, href: "/client", permission: "client"},  
     ],
   }
 
@@ -114,7 +112,7 @@ export function AppSidebar({ ...props }) {
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild>
                 <a href="#" className="flex justify-center items-center w-full h-full">
-                  <img src="/images/qpo_logo1.png" alt="qpo" className="object-contain h-full w-auto" />
+                  <img src="/images/logo.png" alt="Bizz Suite" className="object-contain h-[130px]" />
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -134,7 +132,7 @@ export function AppSidebar({ ...props }) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="#" className="flex justify-center items-center w-full h-full">
-                <img src="/images/qpo_logo1.png" alt="qpo" className="object-contain h-full w-auto" />
+                <img src="/images/logo.png" alt="Bizz Suite" className="object-contain h-[130px]" />
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
