@@ -85,7 +85,7 @@ export function AppSidebar({ ...props }) {
     },
     navMain: [
       { title: "Dashboard", icon: LayoutDashboardIcon, href: "/dashboard", permission: "dashboard" },
-      { title: "User", icon: Building2Icon, href: "/user", permission: "user" },
+      { title: "Employee", icon: Building2Icon, href: "/user", permission: "user" },
       { title: "Logs", icon: Warehouse, href: "/logs", permission: "logs" },
       { title: "Company", icon: Factory, href: "/company", permission: "company"},
       { title: "Client", icon: User, href: "/client", permission: "client"},  

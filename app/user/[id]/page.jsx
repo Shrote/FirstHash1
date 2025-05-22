@@ -6,7 +6,6 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import { storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { AppSidebar } from "@/components/app-sidebar";
 import { Label } from "@/components/ui/label";
 import {
   Breadcrumb,
@@ -17,17 +16,14 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import imageCompression from "browser-image-compression";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function UserProfile() {
   const [user, setUser] = useState(null);
@@ -36,6 +32,9 @@ export default function UserProfile() {
   const router = useRouter();
   const params = useParams();
   const [isActive, setIsActive] = useState(true);
+  const [companies, setCompanies] = useState([]);
+  const [selectedCompanies, setSelectedCompanies] = useState({});
+  const [accessLevels, setAccessLevels] = useState({});
 
   const fetchUserData = async () => {
     if (!params.id) return;
@@ -46,6 +45,25 @@ export default function UserProfile() {
       if (userDoc.exists()) {
         const userData = userDoc.data();
         setUser(userData);
+
+        // Initialize access levels
+        const initialAccessLevels = {};
+        if (userData.accessLevelMap) {
+          Object.entries(userData.accessLevelMap).forEach(([key, value]) => {
+            initialAccessLevels[key] = value === true || value === "true";
+          });
+        }
+        setAccessLevels(initialAccessLevels);
+
+        // Initialize selected companies
+        const initialSelected = {};
+        if (userData.assignedCompany && typeof userData.assignedCompany === "object") {
+          Object.keys(userData.assignedCompany).forEach((companyId) => {
+            initialSelected[companyId] = true;
+          });
+        }
+        setSelectedCompanies(initialSelected);
+
         setUpdatedUser(userData);
         setIsActive(userData.profileStatus === "Active");
       } else {
@@ -56,9 +74,47 @@ export default function UserProfile() {
     }
   };
 
+  const fetchCompanies = async () => {
+    try {
+      const companyDocRef = doc(firestore, "DropdownMenu", "companyName");
+      const companyDoc = await getDoc(companyDocRef);
+
+      if (companyDoc.exists()) {
+        const companyData = companyDoc.data();
+        const companiesArray = Object.entries(companyData).map(
+          ([id, data]) => ({
+            id,
+            ...data,
+          })
+        );
+        setCompanies(companiesArray);
+      } else {
+        // Try with lowercase collection name as fallback
+        const companyDocRef = doc(firestore, "dropdownMenu", "companyName");
+        const companyDoc = await getDoc(companyDocRef);
+
+        if (companyDoc.exists()) {
+          const companyData = companyDoc.data();
+          const companiesArray = Object.entries(companyData).map(
+            ([id, data]) => ({
+              id,
+              ...data,
+            })
+          );
+          setCompanies(companiesArray);
+        } else {
+          console.error("No company data found.");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching company data:", error);
+    }
+  };
+
   useEffect(() => {
     fetchUserData();
-  }, [params.id]); // Removed firestore from dependencies as it's stable
+    fetchCompanies();
+  }, [params.id]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -69,7 +125,7 @@ export default function UserProfile() {
   };
 
   const compressImage = async (file) => {
-    let options = {
+    const options = {
       maxSizeMB: 0.1,
       maxWidthOrHeight: 800,
       useWebWorker: true,
@@ -103,14 +159,10 @@ export default function UserProfile() {
     }
   };
 
-  const handleAccessLevelChange = (e) => {
-    const { name, checked } = e.target;
-    setUpdatedUser((prevState) => ({
-      ...prevState,
-      accessLevels: {
-        ...prevState.accessLevels,
-        [name]: checked ? "true" : "false",
-      },
+  const handleAccessLevelChange = (key, checked) => {
+    setAccessLevels((prev) => ({
+      ...prev,
+      [key]: checked,
     }));
   };
 
@@ -135,18 +187,57 @@ export default function UserProfile() {
       }
     }
   };
+
+  const handleCompanySelection = (companyId, isChecked) => {
+    setSelectedCompanies((prev) => ({
+      ...prev,
+      [companyId]: isChecked,
+    }));
+  };
+
   const handleSaveOrEdit = async () => {
     if (isEditable) {
       if (!params.id) return;
 
       try {
+        // Prepare assigned companies data
+        const assignedCompanyMap = {};
+        Object.entries(selectedCompanies).forEach(([companyId, isSelected]) => {
+          if (isSelected) {
+            const company = companies.find((c) => c.id === companyId);
+            if (company) {
+              assignedCompanyMap[companyId] = {
+                name: company.name,
+                address: company.address || "",
+                contactPersons: company.contactPersons || "",
+                phone: company.phone || "",
+                email: company.email || "",
+                status: company.status || "Active",
+              };
+            }
+          }
+        });
+
+        // Prepare access levels data
+        const accessLevelMap = {};
+        Object.entries(accessLevels).forEach(([key, value]) => {
+          accessLevelMap[key] = value;
+        });
+
+        const dataToSave = {
+          ...updatedUser,
+          assignedCompany: assignedCompanyMap,
+          accessLevelMap,
+        };
+
         const userDocRef = doc(firestore, "users", params.id);
-        await updateDoc(userDocRef, updatedUser);
+        await updateDoc(userDocRef, dataToSave);
+
         setIsEditable(false);
-        setIsActive(!isActive);
         toast.success("User data updated successfully!", {
           position: "top-right",
         });
+        fetchUserData();
       } catch (error) {
         console.error("Error saving user data:", error);
         toast.error("Error saving user data.", { position: "top-right" });
@@ -159,12 +250,6 @@ export default function UserProfile() {
   if (!user) {
     return <p>Loading user details...</p>;
   }
-
-  const trueAccessLevels = updatedUser.accessLevels
-    ? Object.entries(updatedUser.accessLevels).filter(
-        ([, value]) => value === "true"
-      )
-    : [];
 
   return (
     <>
@@ -221,14 +306,21 @@ export default function UserProfile() {
                   <label className="block text-sm font-medium text-gray-700">
                     Gender
                   </label>
-                  <Input
-                    type="text"
+                  <select
                     name="gender"
                     value={updatedUser.gender || ""}
                     onChange={handleInputChange}
                     disabled={!isEditable}
-                    className="mt-1"
-                  />
+                    className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  >
+                    <option value="" disabled>
+                      Select Gender
+                    </option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                    <option value="prefer-not-to-say">Prefer not to say</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
@@ -256,6 +348,37 @@ export default function UserProfile() {
                     className="mt-1"
                   />
                 </div>
+                <div className="mt-6">
+              <h3 className="text-lg font-medium text-gray-900">
+                Access Levels
+              </h3>
+              <div className="mt-2 grid grid-cols-2 gap-4">
+                {Object.entries(accessLevels).length > 0 ? (
+                  <div className="grid gap-2">
+                    {Object.entries(accessLevels).map(([key, value]) => (
+                      <div
+                        key={key}
+                        className="flex justify-between items-center border p-2 rounded"
+                      >
+                        <span className="font-medium">{key}</span>
+                        {isEditable ? (
+                          <Checkbox
+                            checked={value}
+                            onCheckedChange={(checked) =>
+                              handleAccessLevelChange(key, checked)
+                            }
+                          />
+                        ) : (
+                          <span>{value ? "Enabled" : "Disabled"}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">No access levels assigned.</p>
+                )}
+              </div>
+            </div>
                 {updatedUser.userType === "Sales" && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
@@ -319,52 +442,65 @@ export default function UserProfile() {
                     className="mt-1"
                   />
                 </div>
+               <div className="mt-4">
+  <label className="block text-sm font-medium text-gray-700">
+    Assigned Companies
+  </label>
+  <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border rounded-md p-3">
+    {companies.length > 0 ? (
+      isEditable ? (
+        // Editable mode: show all companies with checkboxes
+        companies.map((company) => (
+          <div
+            key={company.id}
+            className="flex items-start gap-3 p-2 bg-white border rounded shadow-sm"
+          >
+            <Checkbox
+              id={`company-${company.id}`}
+              checked={selectedCompanies[company.id] || false}
+              onCheckedChange={(checked) =>
+                handleCompanySelection(company.id, checked)
+              }
+              disabled={!isEditable}
+            />
+            <div>
+              <label
+                htmlFor={`company-${company.id}`}
+                className="font-semibold cursor-pointer"
+              >
+                {company.name}
+              </label>
+              {company.address && (
+                <p className="text-xs text-gray-500">{company.address}</p>
+              )}
+            </div>
+          </div>
+        ))
+      ) : (
+        // Read-only mode: show only assigned companies
+        companies
+          .filter((company) => selectedCompanies[company.id])
+          .map((company) => (
+            <div
+              key={company.id}
+              className="p-2 bg-white border rounded shadow-sm"
+            >
+              <p className="font-semibold">{company.name}</p>
+              {company.address && (
+                <p className="text-xs text-gray-500">{company.address}</p>
+              )}
+            </div>
+          ))
+      )
+    ) : (
+      <p className="text-sm text-gray-500">No companies available.</p>
+    )}
+  </div>
+</div>
+
               </div>
             </div>
-            <div className="mt-6">
-              <h3 className="text-lg font-medium text-gray-900">
-                Access Levels
-              </h3>
-              <div className="mt-2 grid grid-cols-2 gap-4">
-                {isEditable
-                  ? Object.entries(updatedUser.accessLevels || {}).map(
-                      ([key, value]) => (
-                        <div key={key} className="flex items-center">
-                          <input
-                            type="checkbox"
-                            name={key}
-                            checked={value === "true"}
-                            onChange={handleAccessLevelChange}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                          />
-                          <label className="ml-2 block text-sm text-gray-900">
-                            {key.charAt(0).toUpperCase() + key.slice(1)}
-                          </label>
-                        </div>
-                      )
-                    )
-                  : trueAccessLevels.map(([key]) => (
-                      <div key={key} className="flex items-center">
-                        <svg
-                          className="h-5 w-5 text-green-500"
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                          aria-hidden="true"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="ml-2 text-sm text-gray-900">
-                          {key.charAt(0).toUpperCase() + key.slice(1)}
-                        </span>
-                      </div>
-                    ))}
-              </div>
-            </div>
+            
           </CardContent>
         </Card>
         <div className="mt-6 flex justify-between">

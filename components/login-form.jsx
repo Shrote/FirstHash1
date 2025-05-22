@@ -44,7 +44,7 @@ export function LoginForm({ className, ...props }) {
       const userData = userDoc.data();
 
       // Check if userType is Admin (case-insensitive)
-      if (userData.userType?.toLowerCase() === "admin") {
+      if (userData.userType?.toLowerCase() === "admin"  || userData.userType === "employee") {
         // Save user info to localStorage
         localStorage.setItem("userName", userData.email || email);
         localStorage.setItem("userType", "admin");

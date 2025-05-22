@@ -8,7 +8,7 @@ import { toast } from "@/components/ui/use-toast";
 import { useToast } from "@/hooks/use-toast";
 import { date } from "zod";
 
-export default function AddUserForm({ onClose }) {
+export default function AddEmployeeForm({ onClose }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
