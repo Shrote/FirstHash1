@@ -57,7 +57,10 @@ export default function UserProfile() {
 
         // Initialize selected companies
         const initialSelected = {};
-        if (userData.assignedCompany && typeof userData.assignedCompany === "object") {
+        if (
+          userData.assignedCompany &&
+          typeof userData.assignedCompany === "object"
+        ) {
           Object.keys(userData.assignedCompany).forEach((companyId) => {
             initialSelected[companyId] = true;
           });
@@ -349,36 +352,38 @@ export default function UserProfile() {
                   />
                 </div>
                 <div className="mt-6">
-              <h3 className="text-lg font-medium text-gray-900">
-                Access Levels
-              </h3>
-              <div className="mt-2 grid grid-cols-2 gap-4">
-                {Object.entries(accessLevels).length > 0 ? (
-                  <div className="grid gap-2">
-                    {Object.entries(accessLevels).map(([key, value]) => (
-                      <div
-                        key={key}
-                        className="flex justify-between items-center border p-2 rounded"
-                      >
-                        <span className="font-medium">{key}</span>
-                        {isEditable ? (
-                          <Checkbox
-                            checked={value}
-                            onCheckedChange={(checked) =>
-                              handleAccessLevelChange(key, checked)
-                            }
-                          />
-                        ) : (
-                          <span>{value ? "Enabled" : "Disabled"}</span>
-                        )}
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Access Levels
+                  </h3>
+                  <div className="mt-2 grid grid-cols-2 gap-4">
+                    {Object.entries(accessLevels).length > 0 ? (
+                      <div className="grid gap-2">
+                        {Object.entries(accessLevels).map(([key, value]) => (
+                          <div
+                            key={key}
+                            className="flex justify-between items-center border p-2 rounded"
+                          >
+                            <span className="font-medium">{key}</span>
+                            {isEditable ? (
+                              <Checkbox
+                                checked={value}
+                                onCheckedChange={(checked) =>
+                                  handleAccessLevelChange(key, checked)
+                                }
+                              />
+                            ) : (
+                              <span>{value ? "Enabled" : "Disabled"}</span>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    ) : (
+                      <p className="text-gray-500">
+                        No access levels assigned.
+                      </p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-gray-500">No access levels assigned.</p>
-                )}
-              </div>
-            </div>
+                </div>
                 {updatedUser.userType === "Sales" && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
@@ -420,15 +425,20 @@ export default function UserProfile() {
                   <label className="block text-sm font-medium text-gray-700">
                     User Type
                   </label>
-                  <Input
-                    type="text"
+                  <select
                     name="userType"
                     value={updatedUser.userType || ""}
                     onChange={handleInputChange}
                     disabled={!isEditable}
-                    className="mt-1"
-                  />
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select User Type</option>
+                    <option value="admin">Admin</option>
+                    <option value="employee">Employee</option>
+                    <option value="manager">Manager</option>
+                  </select>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Address
@@ -442,65 +452,69 @@ export default function UserProfile() {
                     className="mt-1"
                   />
                 </div>
-               <div className="mt-4">
-  <label className="block text-sm font-medium text-gray-700">
-    Assigned Companies
-  </label>
-  <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border rounded-md p-3">
-    {companies.length > 0 ? (
-      isEditable ? (
-        // Editable mode: show all companies with checkboxes
-        companies.map((company) => (
-          <div
-            key={company.id}
-            className="flex items-start gap-3 p-2 bg-white border rounded shadow-sm"
-          >
-            <Checkbox
-              id={`company-${company.id}`}
-              checked={selectedCompanies[company.id] || false}
-              onCheckedChange={(checked) =>
-                handleCompanySelection(company.id, checked)
-              }
-              disabled={!isEditable}
-            />
-            <div>
-              <label
-                htmlFor={`company-${company.id}`}
-                className="font-semibold cursor-pointer"
-              >
-                {company.name}
-              </label>
-              {company.address && (
-                <p className="text-xs text-gray-500">{company.address}</p>
-              )}
-            </div>
-          </div>
-        ))
-      ) : (
-        // Read-only mode: show only assigned companies
-        companies
-          .filter((company) => selectedCompanies[company.id])
-          .map((company) => (
-            <div
-              key={company.id}
-              className="p-2 bg-white border rounded shadow-sm"
-            >
-              <p className="font-semibold">{company.name}</p>
-              {company.address && (
-                <p className="text-xs text-gray-500">{company.address}</p>
-              )}
-            </div>
-          ))
-      )
-    ) : (
-      <p className="text-sm text-gray-500">No companies available.</p>
-    )}
-  </div>
-</div>
-
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Assigned Companies
+                  </label>
+                  <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border rounded-md p-3">
+                    {companies.length > 0 ? (
+                      isEditable ? (
+                        // Editable mode: show all companies with checkboxes
+                        companies.map((company) => (
+                          <div
+                            key={company.id}
+                            className="flex items-start gap-3 p-2 bg-white border rounded shadow-sm"
+                          >
+                            <Checkbox
+                              id={`company-${company.id}`}
+                              checked={selectedCompanies[company.id] || false}
+                              onCheckedChange={(checked) =>
+                                handleCompanySelection(company.id, checked)
+                              }
+                              disabled={!isEditable}
+                            />
+                            <div>
+                              <label
+                                htmlFor={`company-${company.id}`}
+                                className="font-semibold cursor-pointer"
+                              >
+                                {company.name}
+                              </label>
+                              {company.address && (
+                                <p className="text-xs text-gray-500">
+                                  {company.address}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        // Read-only mode: show only assigned companies
+                        companies
+                          .filter((company) => selectedCompanies[company.id])
+                          .map((company) => (
+                            <div
+                              key={company.id}
+                              className="p-2 bg-white border rounded shadow-sm"
+                            >
+                              <p className="font-semibold">{company.name}</p>
+                              {company.address && (
+                                <p className="text-xs text-gray-500">
+                                  {company.address}
+                                </p>
+                              )}
+                            </div>
+                          ))
+                      )
+                    ) : (
+                      <p className="text-sm text-gray-500">
+                        No companies available.
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-            
           </CardContent>
         </Card>
         <div className="mt-6 flex justify-between">

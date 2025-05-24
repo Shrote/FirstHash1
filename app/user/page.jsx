@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { firestore } from "@/lib/firebase";
 import { collection, doc, getDocs } from "firebase/firestore";
+import { AppSidebar } from "@/components/app-sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -21,17 +22,20 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import {
+  SidebarInset,
+  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import AddUserForm from "@/components/AddUserForm";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import AddEmployeeForm from "@/components/AddUserForm";
 
 export default function Page() {
   const [users, setUsers] = useState([]);
@@ -71,6 +75,9 @@ export default function Page() {
     fetchUsers();
   }, [fetchUsers]);
 
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleFilterChange = (e) => {
     const selectedType = e.target.value;
@@ -108,7 +115,7 @@ export default function Page() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbPage>Employee</BreadcrumbPage>
+                <BreadcrumbPage>Users</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -116,11 +123,11 @@ export default function Page() {
       </header>
 
       <div className="space-y-4 p-6">
-        <h2 className="text-3xl font-semibold text-gray-900">Employee</h2>
+        <h2 className="text-3xl font-semibold text-gray-900">Users</h2>
         <div className="flex justify-between items-center mb-4">
           <Input
             type="text"
-            placeholder="Search Employee..."
+            placeholder="Search users..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="max-w-sm py-2 px-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition ease-in-out duration-200"
@@ -131,7 +138,7 @@ export default function Page() {
               onChange={handleFilterChange}
               className="py-2 px-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
-              <option value="All">All Employee Types</option>
+              <option value="All">All User Types</option>
               {[
                 ...new Set(users.map((user) => user.userType).filter(Boolean)),
               ].map((type) => (
@@ -140,11 +147,11 @@ export default function Page() {
                 </option>
               ))}
             </select>
-            <Button onClick={handleAddNewUserClick}>Add New Employee</Button>
+            <Button onClick={handleAddNewUserClick}>Add New User</Button>
           </div>
         </div>
         <Table className="overflow-x-auto shadow-md rounded-lg">
-          <TableCaption>All registered employee</TableCaption>
+          <TableCaption>All registered users</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
@@ -195,7 +202,7 @@ export default function Page() {
           <DialogHeader>
             <DialogTitle>Add New User</DialogTitle>
           </DialogHeader>
-          <AddEmployeeForm onClose={handleCloseModal} />
+          <AddUserForm onClose={handleCloseModal} />
         </DialogContent>
       </Dialog>
     </>

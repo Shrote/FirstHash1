@@ -16,7 +16,7 @@ export default function AddEmployeeForm({ onClose }) {
     address: "",
     userType: "",
     gender: "",
-    role: "",
+    
   });
   const { toast } = useToast();
 
@@ -116,7 +116,7 @@ export default function AddEmployeeForm({ onClose }) {
         <option value="">Select User Type</option>
         <option value="admin">Admin</option>
         <option value="employee">Employee</option>
-        <option value="client">Client</option>
+        <option value="client">Manager</option>
       </select>
 
       <select
@@ -132,7 +132,7 @@ export default function AddEmployeeForm({ onClose }) {
         <option value="other">Other</option>
       </select>
 
-      <select
+      {/* <select
         name="role"
         value={formData.role}
         onChange={handleChange}
@@ -143,7 +143,7 @@ export default function AddEmployeeForm({ onClose }) {
         <option value="manager">Manager</option>
         <option value="developer">Developer</option>
         <option value="sales">Sales</option>
-      </select>
+      </select> */}
 
       <button
         type="submit"

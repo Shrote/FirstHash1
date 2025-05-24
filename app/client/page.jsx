@@ -1,5 +1,6 @@
 "use client";
 import { AppSidebar } from "@/components/app-sidebar";
+import { useRouter } from "next/navigation";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -74,6 +75,12 @@ export default function Client() {
       setFilteredUsers(filtered);
     }
   };
+  const router = useRouter();
+
+const handleViewUser = (userId) => {
+  router.push(`/client/${userId}`);
+};
+
   return (
     <>
       {/* <Toaster position="top-right" reverseOrder={false} /> */}
