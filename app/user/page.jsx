@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/table";
 import { firestore } from "@/lib/firebase";
 import { collection, doc, getDocs } from "firebase/firestore";
-import { AppSidebar } from "@/components/app-sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -22,8 +21,6 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import {
-  SidebarInset,
-  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -33,7 +30,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import AddEmployeeForm from "@/components/AddUserForm";
 
@@ -75,9 +71,6 @@ export default function Page() {
     fetchUsers();
   }, [fetchUsers]);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
 
   const handleFilterChange = (e) => {
     const selectedType = e.target.value;

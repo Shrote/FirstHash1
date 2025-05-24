@@ -17,9 +17,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { firestore } from "@/lib/firebase";
+import { auth, firestore } from "@/lib/firebase";
 import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import toast from "react-hot-toast";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function CompanySelection({
   selectedCompany,
@@ -40,19 +41,22 @@ export default function CompanySelection({
   const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
-    const fetchCompanies = async () => {
-      const docRef = doc(firestore, "dropdownMenu", "companyName");
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const names = Object.keys(snapshot.data());
-        setCompanies(names);
-        if (!selectedCompany)
-        {
-          setSelectedCompany(names[0])
+      const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        if (currentUser) {
+          const docRef = doc(firestore, "users", currentUser.uid);
+          const snapshot = await getDoc(docRef);
+          if (snapshot.exists()) {
+            const names = Object.keys(snapshot.data().assignedCompany);
+            setCompanies(names);
+            if (!selectedCompany) {
+              setSelectedCompany(names[0]);
+            }
+          }
+        } else {
+          setUser(null);
         }
-      }
-    };
-    fetchCompanies();
+      });
+    return () => unsubscribe();
   }, []);
 
   const handleChange = (key, value) => {
