@@ -102,9 +102,6 @@ export default function Page() {
     setIsModalOpen(false);
     fetchUsers();
   };
-  //   const handleViewUser = (userId) => {
-  //   router.push(`/user/${userId}`);
-  // };
 
   return (
     <>
@@ -138,7 +135,7 @@ export default function Page() {
               onChange={handleFilterChange}
               className="py-2 px-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
-              <option value="All">All User Types</option>
+              <option value="All">All Users</option>
               {[
                 ...new Set(users.map((user) => user.userType).filter(Boolean)),
               ].map((type) => (
@@ -159,7 +156,7 @@ export default function Page() {
               <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Created At</TableHead>
-              <TableHead>User Type</TableHead>
+              <TableHead>Roll</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Action</TableHead>
             </TableRow>

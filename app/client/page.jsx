@@ -1,5 +1,4 @@
 "use client";
-import { AppSidebar } from "@/components/app-sidebar";
 import { useRouter } from "next/navigation";
 import {
   Breadcrumb,
@@ -10,11 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   Table,
   TableBody,
@@ -27,15 +22,19 @@ import {
 import { firestore } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { useCallback, useEffect, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import AddClientForm from "@/components/AddClientForm";
 
 export default function Client() {
-  const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [userTypeFilter, setUserTypeFilter] = useState("All");
 
-  // Fetch Users from Firestore
   const fetchUsers = useCallback(async () => {
     try {
       const usersCollection = collection(firestore, "users");
@@ -54,7 +53,6 @@ export default function Client() {
             (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0)
         );
 
-      setUsers(usersData);
       setFilteredUsers(usersData);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -65,26 +63,23 @@ export default function Client() {
     fetchUsers();
   }, [fetchUsers]);
 
-  const handleFilterChange = (e) => {
-    const selectedType = e.target.value;
-    setUserTypeFilter(selectedType);
-    if (selectedType === "All") {
-      setFilteredUsers(users);
-    } else {
-      const filtered = users.filter((user) => user.userType === selectedType);
-      setFilteredUsers(filtered);
-    }
+  const handleAddNewUserClick = () => {
+    setIsModalOpen(true);
   };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    fetchUsers();
+  };
+
   const router = useRouter();
 
-const handleViewUser = (userId) => {
-  router.push(`/client/${userId}`);
-};
+  const handleViewUser = (userId) => {
+    router.push(`/client/${userId}`);
+  };
 
   return (
     <>
-      {/* <Toaster position="top-right" reverseOrder={false} /> */}
-      {/* <NotificationHandler /> */}
       <header className="flex h-16 shrink-0 items-center gap-2 px-4">
         <div className="flex items-center gap-2 w-full">
           <SidebarTrigger className="-ml-1" />
@@ -109,21 +104,7 @@ const handleViewUser = (userId) => {
             className="max-w-sm py-2 px-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition ease-in-out duration-200"
           />
           <div className="flex items-center gap-4">
-            <select
-              value={userTypeFilter}
-              onChange={handleFilterChange}
-              className="py-2 px-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            >
-              <option value="All">All Client Types</option>
-              {[
-                ...new Set(users.map((user) => user.userType).filter(Boolean)),
-              ].map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-            <Button>Add New Client</Button>
+            <Button onClick={handleAddNewUserClick}>Add New Client</Button>
           </div>
         </div>
         <Table className="overflow-x-auto shadow-md rounded-lg">
@@ -169,6 +150,14 @@ const handleViewUser = (userId) => {
           </TableBody>
         </Table>
       </div>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Client</DialogTitle>
+          </DialogHeader>
+          <AddClientForm onClose={handleCloseModal} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

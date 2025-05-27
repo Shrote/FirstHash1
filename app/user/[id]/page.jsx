@@ -423,7 +423,7 @@ export default function UserProfile() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    User Type
+                    Roll
                   </label>
                   <select
                     name="userType"
@@ -432,7 +432,7 @@ export default function UserProfile() {
                     disabled={!isEditable}
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">Select User Type</option>
+                    <option value="">Select Roll</option>
                     <option value="admin">Admin</option>
                     <option value="employee">Employee</option>
                     <option value="manager">Manager</option>
