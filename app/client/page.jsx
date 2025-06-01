@@ -32,14 +32,14 @@ import AddClientForm from "@/components/AddClientForm";
 
 export default function Client() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [filteredClients, setFilteredClients] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchUsers = useCallback(async () => {
+  const fetchClients = useCallback(async () => {
     try {
-      const usersCollection = collection(firestore, "users");
-      const userDocs = await getDocs(usersCollection);
-      const usersData = userDocs.docs
+      const clientsCollection = collection(firestore, "clients");
+      const clientDocs = await getDocs(clientsCollection);
+      const clientsData = clientDocs.docs
         .map((doc) => {
           const data = doc.data();
           return {
@@ -53,29 +53,29 @@ export default function Client() {
             (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0)
         );
 
-      setFilteredUsers(usersData);
+      setFilteredClients(clientsData);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      console.error("Error fetching clients:", error);
     }
   }, []);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    fetchClients();
+  }, [fetchClients]);
 
-  const handleAddNewUserClick = () => {
+  const handleAddNewClientClick = () => {
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    fetchUsers();
+    fetchClients();
   };
 
   const router = useRouter();
 
-  const handleViewUser = (userId) => {
-    router.push(`/client/${userId}`);
+  const handleViewClient = (clientId) => {
+    router.push(`/client/${clientId}`);
   };
 
   return (
@@ -104,7 +104,7 @@ export default function Client() {
             className="max-w-sm py-2 px-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition ease-in-out duration-200"
           />
           <div className="flex items-center gap-4">
-            <Button onClick={handleAddNewUserClick}>Add New Client</Button>
+            <Button onClick={handleAddNewClientClick}>Add New Client</Button>
           </div>
         </div>
         <Table className="overflow-x-auto shadow-md rounded-lg">
@@ -112,7 +112,6 @@ export default function Client() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Gender</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Created At</TableHead>
@@ -121,29 +120,28 @@ export default function Client() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredUsers.map((user) => (
-              <TableRow key={user.id} className="hover:bg-gray-100">
-                <TableCell>{user.name || "N/A"}</TableCell>
-                <TableCell>{user.gender || "N/A"}</TableCell>
-                <TableCell>{user.email || "N/A"}</TableCell>
-                <TableCell>{user.phone || "N/A"}</TableCell>
+            {filteredClients.map((client) => (
+              <TableRow key={client.id} className="hover:bg-gray-100">
+                <TableCell>{client.name || "N/A"}</TableCell>
+                <TableCell>{client.email || "N/A"}</TableCell>
+                <TableCell>{client.phone || "N/A"}</TableCell>
                 <TableCell>
-                  {user.createdAt ? user.createdAt.toLocaleString() : "N/A"}
+                  {client.createdAt ? client.createdAt.toLocaleString() : "N/A"}
                 </TableCell>
 
                 <TableCell>
                   <span
                     className={
-                      user.profileStatus === "Inactive"
+                      client.profileStatus === "Inactive"
                         ? "text-red-500"
                         : "text-green-500"
                     }
                   >
-                    {(user.profileStatus || "Active").toUpperCase()}
+                    {(client.profileStatus || "Active").toUpperCase()}
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Button onClick={() => handleViewUser(user.id)}>View</Button>
+                  <Button onClick={() => handleViewClient(client.id)}>View</Button>
                 </TableCell>
               </TableRow>
             ))}

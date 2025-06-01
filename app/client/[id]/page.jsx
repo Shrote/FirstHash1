@@ -1,551 +1,434 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { firestore } from "@/lib/firebase";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { Label } from "@/components/ui/label";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import imageCompression from "browser-image-compression";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useEffect, useState } from "react";
-import { firestore, storage } from "@/lib/firebase";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  collection,
-  getDocs,
-} from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
-import toast from "react-hot-toast";
-import Image from "next/image";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-export default function UserProfile() {
-  const { id } = useParams();
-  const router = useRouter();
-
-  const [user, setUser] = useState(null);
-  const [companies, setCompanies] = useState([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState("");
-  const [imagePreview, setImagePreview] = useState(null);
+export default function ClientProfile() {
+  const [client, setClient] = useState(null);
   const [isEditable, setIsEditable] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [updatedClient, setUpdatedClient] = useState({});
+  const router = useRouter();
+  const params = useParams();
+  const [isActive, setIsActive] = useState(true);
+  const [companies, setCompanies] = useState([]);
+  const [selectedCompanies, setSelectedCompanies] = useState({});
 
-  // Fetch all companies from the companies collection
-  const fetchCompanies = async () => {
+  const fetchClientData = async () => {
+    if (!params.id) return;
+
     try {
-      const companiesCollection = collection(firestore, "companies");
-      const snapshot = await getDocs(companiesCollection);
-      const companiesList = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setCompanies(companiesList);
-    } catch (err) {
-      console.error("Error fetching companies:", err);
-      toast.error("Failed to load companies");
+      const clientDocRef = doc(firestore, "clients", params.id);
+      const clientDoc = await getDoc(clientDocRef);
+      if (clientDoc.exists()) {
+        const clientData = clientDoc.data();
+        setClient(clientData);
+
+        // Initialize selected companies
+        const initialSelected = {};
+        if (
+          clientData.assignedCompany &&
+          typeof clientData.assignedCompany === "object"
+        ) {
+          Object.keys(clientData.assignedCompany).forEach((companyId) => {
+            initialSelected[companyId] = true;
+          });
+        }
+        setSelectedCompanies(initialSelected);
+
+        setUpdatedClient(clientData);
+        setIsActive(clientData.profileStatus === "Active");
+      } else {
+        console.error("No client found with the given ID.");
+      }
+    } catch (error) {
+      console.error("Error fetching client data:", error);
     }
   };
 
-  const fetchUserData = async () => {
-    if (!id) return;
-    setIsLoading(true);
+  const fetchCompanies = async () => {
     try {
-      const userRef = doc(firestore, "users", id);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        setUser({
-          ...userData,
-          id: userSnap.id,
-          accessLevelMap: userData.accessLevelMap || {},
-          assignedCompany: userData.assignedCompany || {},
-        });
+      const companyDocRef = doc(firestore, "DropdownMenu", "companyName");
+      const companyDoc = await getDoc(companyDocRef);
 
-        // Set the selected company if one is assigned
-        if (
-          userData.assignedCompany &&
-          Object.keys(userData.assignedCompany).length > 0
-        ) {
-          const companyId = Object.keys(userData.assignedCompany)[0];
-          setSelectedCompanyId(companyId);
-        }
+      if (companyDoc.exists()) {
+        const companyData = companyDoc.data();
+        const companiesArray = Object.entries(companyData).map(
+          ([id, data]) => ({
+            id,
+            ...data,
+          })
+        );
+        setCompanies(companiesArray);
       } else {
-        toast.error("User not found");
-        router.push("/users");
+        // Try with lowercase collection name as fallback
+        const companyDocRef = doc(firestore, "dropdownMenu", "companyName");
+        const companyDoc = await getDoc(companyDocRef);
+
+        if (companyDoc.exists()) {
+          const companyData = companyDoc.data();
+          const companiesArray = Object.entries(companyData).map(
+            ([id, data]) => ({
+              id,
+              ...data,
+            })
+          );
+          setCompanies(companiesArray);
+        } else {
+          console.error("No company data found.");
+        }
       }
-    } catch (err) {
-      console.error("Error fetching user:", err);
-      toast.error("Failed to load user data");
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching company data:", error);
     }
   };
 
   useEffect(() => {
-    fetchUserData();
+    fetchClientData();
     fetchCompanies();
-  }, [id]);
+  }, [params.id]);
 
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setUser((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSwitchChange = () => {
-    setUser((prev) => ({
-      ...prev,
-      profileStatus: prev?.profileStatus === "Active" ? "Inactive" : "Active",
+    setUpdatedClient((prevState) => ({
+      ...prevState,
+      [name]: value,
     }));
   };
 
-  const handleAccessToggle = (level) => {
-    setUser((prev) => ({
-      ...prev,
-      accessLevelMap: {
-        ...prev?.accessLevelMap,
-        [level]: !prev?.accessLevelMap?.[level],
-      },
-    }));
+  const compressImage = async (file) => {
+    const options = {
+      maxSizeMB: 0.1,
+      maxWidthOrHeight: 800,
+      useWebWorker: true,
+    };
+    try {
+      let compressedFile = await imageCompression(file, options);
+      while (compressedFile.size > 100 * 1024 && options.maxSizeMB > 0.01) {
+        options.maxSizeMB -= 0.01;
+        compressedFile = await imageCompression(file, options);
+      }
+      return compressedFile;
+    } catch (error) {
+      console.error("Image compression error:", error);
+      return file;
+    }
   };
 
-  const handleCompanySelect = (companyId) => {
-    setSelectedCompanyId(companyId);
+  const handleStatusToggle = async (checked) => {
+    if (!params.id) return;
 
-    // Update user's assignedCompany immediately
-    if (companyId) {
-      const company = companies.find((c) => c.id === companyId);
-      if (company) {
-        setUser((prev) => ({
-          ...prev,
-          assignedCompany: {
-            [companyId]: {
-              address: company.address,
-              contactPersons: company.contactPersons,
-              email: company.email,
-              name: company.name,
-              phone: company.phone,
-              status: company.status,
-            },
-          },
+    const newStatus = checked ? "Active" : "Inactive";
+
+    try {
+      const productDocRef = doc(firestore, "clients", params.id);
+      await updateDoc(productDocRef, { profileStatus: newStatus });
+
+      setIsActive(checked);
+      toast.success(`Client status updated to ${newStatus}`);
+    } catch (error) {
+      toast.error("Failed to update Client status.");
+    }
+  };
+
+  const handleProfileImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      try {
+        const compressedFile = await compressImage(file);
+        const imageRef = ref(
+          storage,
+          `clients/${Date.now()}_${compressedFile.name}`
+        );
+        const snapshot = await uploadBytes(imageRef, compressedFile);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        setUpdatedClient((prevState) => ({
+          ...prevState,
+          profileImage: downloadURL,
         }));
+      } catch (error) {
+        console.error("Error uploading image:", error);
+      }
+    }
+  };
+
+  const handleCompanySelection = (companyId, isChecked) => {
+    setSelectedCompanies((prev) => ({
+      ...prev,
+      [companyId]: isChecked,
+    }));
+  };
+
+  const handleSaveOrEdit = async () => {
+    if (isEditable) {
+      if (!params.id) return;
+
+      try {
+        // Prepare assigned companies data
+        const assignedCompanyMap = {};
+        Object.entries(selectedCompanies).forEach(([companyId, isSelected]) => {
+          if (isSelected) {
+            const company = companies.find((c) => c.id === companyId);
+            if (company) {
+              assignedCompanyMap[companyId] = {
+                name: company.name,
+                address: company.address || "",
+                phone: company.phone || "",
+                email: company.email || "",
+                status: company.status || "Active",
+              };
+            }
+          }
+        });
+
+        const dataToSave = {
+          ...updatedClient,
+          assignedCompany: assignedCompanyMap,
+        };
+
+        const clientDocRef = doc(firestore, "clients", params.id);
+        await updateDoc(clientDocRef, dataToSave);
+
+        setIsEditable(false);
+        toast.success("Client data updated successfully!", {
+          position: "top-right",
+        });
+        fetchClientData();
+      } catch (error) {
+        console.error("Error saving client data:", error);
+        toast.error("Error saving client data.", { position: "top-right" });
       }
     } else {
-      setUser((prev) => ({ ...prev, assignedCompany: {} }));
+      setIsEditable(true);
     }
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.match("image.*")) {
-      toast.error("Please upload an image file (JPEG/PNG)");
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image size should be less than 2MB");
-      return;
-    }
-
-    try {
-      setImagePreview(URL.createObjectURL(file));
-      const storageRef = ref(storage, `profiles/${id}_${Date.now()}.jpg`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      setUser((prev) => ({ ...prev, profileImage: url }));
-      toast.success("Profile image updated");
-    } catch (err) {
-      console.error("Error uploading image:", err);
-      toast.error("Failed to upload image");
-    }
-  };
-
-  const handleSave = async () => {
-    if (!user || !id) return;
-
-    try {
-      setIsSaving(true);
-
-      // Prepare update data
-      const updateData = {
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        gender: user.gender,
-        address: user.address,
-        userType: user.userType,
-        profileStatus: user.profileStatus,
-        accessLevelMap: user.accessLevelMap,
-        assignedCompany: user.assignedCompany,
-        updatedAt: new Date(),
-      };
-
-      // Only include profileImage if it exists
-      if (user.profileImage) {
-        updateData.profileImage = user.profileImage;
-      }
-
-      await updateDoc(doc(firestore, "users", id), updateData);
-      toast.success("User updated successfully!");
-      setIsEditable(false);
-      fetchUserData(); // Refresh data to ensure consistency
-    } catch (err) {
-      console.error("Error updating user:", err);
-      toast.error("Failed to update user");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const accessLevels = [
-    { key: "dashboard", label: "Dashboard" },
-    { key: "employee", label: "Employee" },
-    { key: "user", label: "User" },
-    { key: "company", label: "Company" },
-    { key: "client", label: "Client" },
-    { key: "logs", label: "Logs" },
-    { key: "canEdit", label: "Edit" },
-    { key: "canView", label: "View" },
-    { key: "canDelete", label: "Delete" },
-  ];
-
-  if (isLoading) {
-    return (
-      <div className="p-4 max-w-6xl mx-auto space-y-4">
-        <Skeleton className="h-10 w-24" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ))}
-          </div>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-24 w-24 rounded-full" />
-            </div>
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="p-4 max-w-6xl mx-auto text-center">
-        <p>User not found</p>
-        <Button onClick={() => router.push("/users")} className="mt-4">
-          Back to Users
-        </Button>
-      </div>
-    );
+  if (!client) {
+    return <p>Loading client details...</p>;
   }
 
   return (
-    <div className="p-4  mx-auto">
-      <Button
-        variant="ghost"
-        onClick={() => router.back()}
-        className="mb-4 gap-1"
-      >
-        <ChevronLeft className="w-4 h-4" />
-        Back
-      </Button>
-
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <CardTitle className="text-2xl">User Profile - {user.name}</CardTitle>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={user.profileStatus === "Active"}
-                onCheckedChange={handleSwitchChange}
-                disabled={!isEditable}
-              />
-              <Label className="flex items-center gap-2">
-                Status:
-                <span
-                  className={`font-medium ${
-                    user.profileStatus === "Active"
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  {user.profileStatus}
-                </span>
-              </Label>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setIsEditable(!isEditable)}
-                variant={isEditable ? "outline" : "default"}
-                className="min-w-[120px]"
+    <>
+      <header className="flex h-16 shrink-0 items-center gap-2">
+        <div className="flex items-center gap-2 px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbPage href="/client">Clients</BreadcrumbPage>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{updatedClient.name}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+      </header>
+      <main className="p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Client Profile</CardTitle>
+            <div className="flex items-center gap-4 ml-auto mt-[-4px]">
+              <Label className="text-lg font-semibold">Client Status</Label>
+              <Switch checked={isActive} onCheckedChange={handleStatusToggle} />
+              <span
+                className={`text-xl font-bold ${
+                  isActive ? "text-green-600" : "text-red-600"
+                }`}
               >
-                {isEditable ? "Cancel" : "Edit Profile"}
-              </Button>
-              {isEditable && (
-                <Button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="min-w-[120px]"
-                >
-                  {isSaving ? (
-                    <span className="flex items-center gap-2">
-                      <span className="animate-spin">↻</span>
-                      Saving...
-                    </span>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </Button>
-              )}
+                {isActive ? "ACTIVE" : "INACTIVE"}
+              </span>
             </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Personal Information */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                name="name"
-                value={user.name || ""}
-                onChange={handleChange}
-                disabled={!isEditable}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                value={user.email || ""}
-                onChange={handleChange}
-                disabled={!isEditable}
-                type="email"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                name="phone"
-                value={user.phone || ""}
-                onChange={handleChange}
-                disabled={!isEditable}
-                type="tel"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="gender">Gender</Label>
-              <select
-                id="gender"
-                name="gender"
-                value={user.gender || ""}
-                onChange={handleChange}
-                className="w-full border rounded-md p-2 text-sm h-10"
-                disabled={!isEditable}
-              >
-                <option value="">Select Gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-                <option value="prefer-not-to-say">Prefer not to say</option>
-              </select>
-            </div>
-
-            <div>
-              <Label htmlFor="userType">User Type</Label>
-              <select
-                id="userType"
-                name="userType"
-                value={user.userType || ""}
-                onChange={handleChange}
-                className="w-full border rounded-md p-2 text-sm h-10"
-                disabled={!isEditable}
-              >
-                <option value="">Select Type</option>
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="employee">Employee</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Profile Details */}
-          <div className="space-y-4">
-            <div>
-              <Label>Profile Image</Label>
-              <div className="flex items-start gap-4 mt-2">
-                <div className="relative h-24 w-24 rounded-full overflow-hidden border">
-                  {imagePreview || user.profileImage ? (
-                    <Image
-                      src={imagePreview || user.profileImage}
-                      alt="Profile"
-                      fill
-                      className="object-cover"
-                      priority
-                    />
-                  ) : (
-                    <div className="bg-gray-100 h-full w-full flex items-center justify-center">
-                      <span className="text-gray-400 text-sm">No Image</span>
-                    </div>
-                  )}
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Name
+                  </label>
+                  <Input
+                    type="text"
+                    name="name"
+                    value={updatedClient.name || ""}
+                    onChange={handleInputChange}
+                    disabled={!isEditable}
+                    className="mt-1"
+                  />
                 </div>
-                {isEditable && (
-                  <div className="flex-1">
-                    <Label htmlFor="profileImage" className="sr-only">
-                      Upload profile image
-                    </Label>
-                    <Input
-                      id="profileImage"
-                      type="file"
-                      onChange={handleImageUpload}
-                      accept="image/*"
-                      className="w-full"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      JPEG/PNG, max 2MB
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Email
+                  </label>
+                  <Input
+                    type="email"
+                    name="email"
+                    value={updatedClient.email || ""}
+                    onChange={handleInputChange}
+                    disabled={!isEditable}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Phone
+                  </label>
+                  <Input
+                    type="text"
+                    name="phone"
+                    value={updatedClient.phone || ""}
+                    onChange={handleInputChange}
+                    disabled={!isEditable}
+                    className="mt-1"
+                  />
+                </div>
 
-            <div>
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                name="address"
-                value={user.address || ""}
-                onChange={handleChange}
-                disabled={!isEditable}
-              />
-            </div>
-
-            <div>
-              <Label>Access Levels</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {accessLevels.map(({ key, label }) => (
-                  <div key={key} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`access-${key}`}
-                      checked={!!user.accessLevelMap?.[key]}
-                      onCheckedChange={() => handleAccessToggle(key)}
-                      disabled={!isEditable}
-                    />
-                    <Label
-                      htmlFor={`access-${key}`}
-                      className="text-sm font-medium"
-                    >
-                      {label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label>Assigned Company</Label>
-              <div className="mt-2">
-                <Select
-                  value={selectedCompanyId}
-                  onValueChange={handleCompanySelect}
-                  disabled={!isEditable || companies.length === 0}
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        companies.length === 0
-                          ? "No companies available"
-                          : "Select a company"
-                      }
-                    >
-                      {selectedCompanyId
-                        ? user?.assignedCompany?.[selectedCompanyId]?.name
-                        : "No company assigned"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companies.length > 0 && (
-                      <>
-                        <SelectItem value="">No company</SelectItem>
-                        {companies.map((company) => (
-                          <SelectItem key={company.id} value={company.id}>
-                            {company.name}
-                          </SelectItem>
-                        ))}
-                      </>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Assigned Companies
+                  </label>
+                  <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border rounded-md p-3">
+                    {companies.length > 0 ? (
+                      isEditable ? (
+                        // Editable mode: show all companies with checkboxes
+                        companies.map((company) => (
+                          <div
+                            key={company.id}
+                            className="flex items-start gap-3 p-2 bg-white border rounded shadow-sm"
+                          >
+                            <Checkbox
+                              id={`company-${company.id}`}
+                              checked={selectedCompanies[company.id] || false}
+                              onCheckedChange={(checked) =>
+                                handleCompanySelection(company.id, checked)
+                              }
+                              disabled={!isEditable}
+                            />
+                            <div>
+                              <label
+                                htmlFor={`company-${company.id}`}
+                                className="font-semibold cursor-pointer"
+                              >
+                                {company.name}
+                              </label>
+                              {company.address && (
+                                <p className="text-xs text-gray-500">
+                                  {company.address}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        // Read-only mode: show only assigned companies
+                        companies
+                          .filter((company) => selectedCompanies[company.id])
+                          .map((company) => (
+                            <div
+                              key={company.id}
+                              className="p-2 bg-white border rounded shadow-sm"
+                            >
+                              <p className="font-semibold">{company.name}</p>
+                              {company.address && (
+                                <p className="text-xs text-gray-500">
+                                  {company.address}
+                                </p>
+                              )}
+                            </div>
+                          ))
+                      )
+                    ) : (
+                      <p className="text-sm text-gray-500">
+                        No companies available.
+                      </p>
                     )}
-                  </SelectContent>
-                </Select>
-
-                {/* Display selected company details */}
-                {selectedCompanyId && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded-md border">
-                    <h4 className="font-medium">
-                      {user?.assignedCompany?.[selectedCompanyId]?.name}
-                    </h4>
-                    <div className="text-sm text-gray-600 space-y-1 mt-2">
-                      <p>
-                        Address:{" "}
-                        {user?.assignedCompany?.[selectedCompanyId]?.address ||
-                          "N/A"}
-                      </p>
-                      <p>
-                        Contact:{" "}
-                        {user?.assignedCompany?.[selectedCompanyId]
-                          ?.contactPersons || "N/A"}
-                      </p>
-                      <p>
-                        Email:{" "}
-                        {user?.assignedCompany?.[selectedCompanyId]?.email ||
-                          "N/A"}
-                      </p>
-                      <p>
-                        Phone:{" "}
-                        {user?.assignedCompany?.[selectedCompanyId]?.phone ||
-                          "N/A"}
-                      </p>
-                      <p>
-                        Status:{" "}
-                        {user?.assignedCompany?.[selectedCompanyId]?.status ||
-                          "N/A"}
-                      </p>
-                    </div>
                   </div>
-                )}
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Profile Image
+                  </label>
+                  <div className="mt-1 flex items-center">
+                    <img
+                      src={updatedClient.profileImage || "/placeholder.png"}
+                      alt="Profile"
+                      className="h-32 w-32 object-cover rounded-md"
+                    />
+                    {isEditable && (
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfileImageChange}
+                        className="ml-4"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Address
+                  </label>
+                  <Input
+                    type="text"
+                    name="address"
+                    value={updatedClient.address || ""}
+                    onChange={handleInputChange}
+                    disabled={!isEditable}
+                    className="mt-1"
+                  />
+                </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+        <div className="mt-6 flex justify-between">
+          <Button onClick={() => router.push("/client")} variant="default">
+            Back to Clients List
+          </Button>
+          <div className="flex gap-2">
+            {isEditable && (
+              <Button
+                onClick={() => {
+                  setIsEditable(false);
+                }}
+              >
+                Cancel
+              </Button>
+            )}
+            <Button onClick={handleSaveOrEdit} variant="default">
+              {isEditable ? "Save Changes" : "Edit Profile"}
+            </Button>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </main>
+      <ToastContainer />
+    </>
   );
 }

@@ -1,18 +1,26 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { usePathname } from "next/navigation"
+import * as React from "react";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboardIcon,
   Warehouse,
   Building2Icon,
   Factory,
-  User,
-  User2
-} from "lucide-react"
+  User2,
+  CalendarCheck,
+  ClipboardList,
+  ListChecks,
+  Database,
+  Receipt,
+  FolderKanban,
+  Users2,
+  IndianRupee,
+} from "lucide-react";
 
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
+
+import { NavMain } from "@/components/nav-main";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -21,61 +29,64 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 // Helper function to safely parse access levels from localStorage
 function parseAccessLevels(str) {
   try {
-    const raw = JSON.parse(str)
+    const raw = JSON.parse(str);
     return Object.fromEntries(
-      Object.entries(raw).map(([key, value]) => [key, value === true || value === "true"])
-    )
+      Object.entries(raw).map(([key, value]) => [
+        key,
+        value === true || value === "true",
+      ])
+    );
   } catch {
-    return {}
+    return {};
   }
 }
 
 export function AppSidebar({ ...props }) {
-  const pathname = usePathname()
-  const [userAccessLevels, setUserAccessLevels] = React.useState(null)
-  const [userType, setUserType] = React.useState(null)
-  const [isLoading, setIsLoading] = React.useState(true)
-  const [userEmail, setUserEmail] = React.useState(null)
+  const pathname = usePathname();
+  const [userAccessLevels, setUserAccessLevels] = React.useState(null);
+  const [userType, setUserType] = React.useState(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [userEmail, setUserEmail] = React.useState(null);
 
   React.useEffect(() => {
     const fetchUserData = () => {
       try {
-        const accessLevelsStr = localStorage.getItem("userAccessLevels")
-        const userTypeStr = localStorage.getItem("userType")
-        const userEmailStr = localStorage.getItem("userName")
+        const accessLevelsStr = localStorage.getItem("userAccessLevels");
+        const userTypeStr = localStorage.getItem("userType");
+        const userEmailStr = localStorage.getItem("userName");
 
-        console.log("Fetched userAccessLevels:", accessLevelsStr)
-        console.log("Fetched userType:", userTypeStr)
-        console.log("Fetched userEmail:", userEmailStr)
+        console.log("Fetched userAccessLevels:", accessLevelsStr);
+        console.log("Fetched userType:", userTypeStr);
+        console.log("Fetched userEmail:", userEmailStr);
 
         if (accessLevelsStr) {
-          const accessLevels = parseAccessLevels(accessLevelsStr)
-          setUserAccessLevels(accessLevels)
+          const accessLevels = parseAccessLevels(accessLevelsStr);
+          setUserAccessLevels(accessLevels);
         } else {
           // fallback for development
           setUserAccessLevels({
             dashboard: true,
             user: true,
             logs: true,
-          })
+          });
         }
 
-        if (userTypeStr) setUserType(userTypeStr)
-        if (userEmailStr) setUserEmail(userEmailStr)
+        if (userTypeStr) setUserType(userTypeStr);
+        if (userEmailStr) setUserEmail(userEmailStr);
       } catch (error) {
-        console.error("Error fetching user access levels:", error)
+        console.error("Error fetching user access levels:", error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchUserData()
-  }, [])
+    fetchUserData();
+  }, []);
 
   const data = {
     user: {
@@ -83,26 +94,91 @@ export function AppSidebar({ ...props }) {
       email: userEmail,
       avatar: "/avatars/shadcn.jpg",
     },
-    navMain: [
-      { title: "Dashboard", icon: LayoutDashboardIcon, href: "/dashboard", permission: "dashboard" },
-      { title: "Employee", icon: Building2Icon, href: "/user", permission: "user" },
-      { title: "Logs", icon: Warehouse, href: "/logs", permission: "logs" },
-      { title: "Company", icon: Factory, href: "/company", permission: "company"},
-      { title: "Client", icon: User, href: "/client", permission: "client"},  
+   navMain: [
+  {
+    title: "Dashboard",
+    icon: LayoutDashboardIcon,
+    href: "/dashboard",
+    permission: "dashboard",
+  },
+  {
+    title: "Employee",
+    icon: Building2Icon,
+    href: "/user",
+    permission: "user",
+  },
+  {
+    title: "Company",
+    icon: Factory,
+    href: "/company",
+    permission: "company",
+  },
+  {
+    title: "Client",
+    icon: User2, // 👤 Consider `UsersIcon` if it's a list
+    href: "/client",
+    permission: "client",
+  },
+  {
+    title: "Attendence",
+    icon: CalendarCheck, // 📅
+    href: "/attendence",
+    permission: "attendence",
+  },
+  {
+    title: "Daily Tasks",
+    icon: ClipboardList, // 📝
+    href: "/daily-task",
+    permission: "daily-task",
+  },
+  {
+    title: "Project Tasks",
+    icon: ListChecks, // ✅
+    href: "/project-task",
+    permission: "project-task",
+  },
+  {
+    title: "Billing",
+    icon: Receipt, // 🧾
+    href: "/billing",
+    permission: "billing",
+  },
+  {
+    title: "Project",
+    icon: FolderKanban, // 🗂️
+    permission: "project",
+    href: "/project",
+    children: [
+      { title: "All Projects", href: "/project/all", key: "all" },
+      { title: "New Project", href: "/project/new", key: "new" },
+      { title: "Deliverables", href: "/project/deliverables", key: "deliverables" },
     ],
-  }
+  },
+  {
+    title: "Salary",
+    icon: IndianRupee, // ₹
+    permission: "salary",
+    href: "/salary",
+    children: [
+      { title: "Pending", href: "/salary/pending", key: "pending" },
+      { title: "Paid", href: "/salary/paid", key: "paid" },
+    ],
+  },
+],
+
+  };
 
   const hasAccess = (permission) => {
-    if (!userAccessLevels) return false
+    if (!userAccessLevels) return false;
     if (permission === "admin") {
-      return userType === "admin"
+      return userType === "admin";
     }
-    return !!userAccessLevels[permission]
-  }
+    return !!userAccessLevels[permission];
+  };
 
   const filterItemsByPermission = (items) => {
-    return items.filter((item) => hasAccess(item.permission))
-  }
+    return items.filter((item) => hasAccess(item.permission));
+  };
 
   if (isLoading) {
     return (
@@ -111,8 +187,15 @@ export function AppSidebar({ ...props }) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild>
-                <a href="#" className="flex justify-center items-center w-full h-full">
-                  <img src="/images/logo.png" alt="Bizz Suite" className="object-contain h-[130px]" />
+                <a
+                  href="#"
+                  className="flex justify-center items-center w-full h-full"
+                >
+                  <img
+                    src="/images/logo.png"
+                    alt="Bizz Suite"
+                    className="object-contain h-[130px]"
+                  />
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -120,10 +203,10 @@ export function AppSidebar({ ...props }) {
         </SidebarHeader>
         <SidebarContent />
       </Sidebar>
-    )
+    );
   }
 
-  const filteredNavMain = filterItemsByPermission(data.navMain)
+  const filteredNavMain = filterItemsByPermission(data.navMain);
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -131,8 +214,15 @@ export function AppSidebar({ ...props }) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#" className="flex justify-center items-center w-full h-full">
-                <img src="/images/logo.png" alt="Bizz Suite" className="object-contain h-[130px]" />
+              <a
+                href="#"
+                className="flex justify-center items-center w-full h-full"
+              >
+                <img
+                  src="/images/logo.png"
+                  alt="Bizz Suite"
+                  className="object-contain h-[130px]"
+                />
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -145,5 +235,5 @@ export function AppSidebar({ ...props }) {
         <NavUser user={{ ...data.user, role: userType || "user" }} />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
