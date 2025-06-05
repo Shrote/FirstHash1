@@ -10,13 +10,7 @@ import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@radix-ui/react-dropdown-menu";
 import { firestore } from "@/lib/firebase";
-import {
-  collection,
-  getDocs,
-  doc,
-  getDoc,
-  setDoc,
-} from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
 import toast, { Toaster } from "react-hot-toast";
 
 // Format date to yyyy-mm-dd
@@ -35,7 +29,9 @@ function AttendancePage() {
   const [selectedDate, setSelectedDate] = useState(formatDate(new Date()));
 
   const selectedCompany =
-    typeof window !== "undefined" ? localStorage.getItem("selectedCompany") : null;
+    typeof window !== "undefined"
+      ? localStorage.getItem("selectedCompany")
+      : null;
 
   // Fetch users assigned to selectedCompany
   useEffect(() => {
@@ -82,7 +78,18 @@ function AttendancePage() {
   const handleSave = async () => {
     try {
       const attendanceRef = doc(firestore, "attendance", selectedDate);
-      await setDoc(attendanceRef, attendanceData, { merge: true });
+
+      // Get all employees marked "present"
+      const presentEmployees = Object.entries(attendanceData)
+        .filter(([_, status]) => status === "present")
+        .map(([userId]) => userId);
+
+      const updatePayload = {
+        // ...attendanceData,
+        [selectedCompany]: presentEmployees,
+      };
+
+      await setDoc(attendanceRef, updatePayload, { merge: true });
       toast.success("Attendance data saved successfully!");
       setEditable(false);
     } catch (error) {
@@ -93,7 +100,6 @@ function AttendancePage() {
 
   return (
     <>
-      {/* Toaster must be added once in your app. Add it here or in root layout */}
       <Toaster position="top-right" />
 
       <header className="flex h-16 shrink-0 items-center gap-2 px-4">
@@ -138,17 +144,18 @@ function AttendancePage() {
                   <td className="px-4 py-2">
                     {editable ? (
                       <select
-                        value={attendanceData[user.id] || "present"}
+                        value={attendanceData[user.id] || ""}
                         onChange={(e) =>
                           handleStatusChange(user.id, e.target.value)
                         }
                         className="border p-1 rounded"
                       >
+                        <option value="">Mark Attendance</option>
                         <option value="present">Present</option>
                         <option value="absent">Absent</option>
                       </select>
                     ) : (
-                      attendanceData[user.id] || "—"
+                      attendanceData[user.id] || "Mark Attendance"
                     )}
                   </td>
                 </tr>
