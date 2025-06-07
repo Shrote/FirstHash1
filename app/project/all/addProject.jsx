@@ -1,333 +1,229 @@
-import React, { useEffect, useState } from "react";
-import toast from "react-hot-toast";
-import { firestore } from "@/lib/firebase"; // adjust path
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  addDoc,
-} from "firebase/firestore";
+'use client';
 
-const DEPARTMENTS = ["IT", "Electrical", "Mechanical", "Another"];
+import { useState, useEffect } from 'react';
+import { collection, doc, getDoc, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { firestore } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
-const AddProject = () => {
+export default function AddProjectForm({ onClose }) {
+  const { toast } = useToast();
+
+  const [formData, setFormData] = useState({
+    company: '',
+    client: '',
+    projectName: '',
+    fromDate: '',
+    toDate: '',
+    description: '',
+    priority: '',
+  });
+
+  const [errors, setErrors] = useState({});
   const [companies, setCompanies] = useState([]);
-  const [selectedCompany, setSelectedCompany] = useState("");
-
-  const [selectedDepartment, setSelectedDepartment] = useState("");
-
-  const [managers, setManagers] = useState([]);
-  const [selectedManager, setSelectedManager] = useState("");
-
   const [clients, setClients] = useState([]);
-  const [selectedClient, setSelectedClient] = useState("");
 
-  const [projectName, setProjectName] = useState("");
-  const [projectTimeline, setProjectTimeline] = useState("");
-  const [description, setDescription] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Fetch companies from dropdownMenu -> companyName (map of companies)
+  // Fetch companies
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
-        const docRef = doc(firestore, "dropdownMenu", "companyName");
+        const docRef = doc(firestore, 'dropdownMenu', 'companyName');
         const docSnap = await getDoc(docRef);
-
         if (docSnap.exists()) {
-          const companyMap = docSnap.data();
-          const companyList = Object.entries(companyMap).map(([key, value]) => ({
-            id: key,
-            data: value,
-          }));
-          setCompanies(companyList);
-        } else {
-          toast.error("Company document not found.");
+          const data = docSnap.data();
+          const list = Object.entries(data).map(([id, val]) => ({ id, name: val.name }));
+          setCompanies(list);
         }
-      } catch (error) {
-        console.error("Error fetching companies:", error);
-        toast.error("Failed to fetch companies");
+      } catch (err) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load companies' });
       }
     };
-
     fetchCompanies();
   }, []);
 
-  // Fetch clients after company is selected
+  // Fetch clients when company changes
   useEffect(() => {
-    if (!selectedCompany) {
-      setClients([]);
-      setSelectedClient("");
-      return;
-    }
-
+    if (!formData.company) return;
     const fetchClients = async () => {
       try {
-        const clientSnap = await getDocs(collection(firestore, "clients"));
-        const clientList = clientSnap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setClients(clientList);
-      } catch (error) {
-        console.error("Error fetching clients:", error);
-        toast.error("Failed to fetch clients");
+        const querySnap = await getDocs(collection(firestore, 'clients'));
+        const list = querySnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        setClients(list);
+      } catch (err) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load clients' });
       }
     };
-
     fetchClients();
-  }, [selectedCompany]);
+  }, [formData.company]);
 
-  // Fetch managers based on selected company and department
-  useEffect(() => {
-    if (!selectedCompany || !selectedDepartment) {
-      setManagers([]);
-      setSelectedManager("");
-      return;
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.company) newErrors.company = 'Company is required';
+    if (!formData.client) newErrors.client = 'Client is required';
+    if (!formData.projectName.trim()) newErrors.projectName = 'Project name is required';
+    if (!formData.fromDate) newErrors.fromDate = 'From date is required';
+    if (!formData.toDate) newErrors.toDate = 'To date is required';
+    if (
+      formData.fromDate &&
+      formData.toDate &&
+      new Date(formData.toDate) < new Date(formData.fromDate)
+    ) {
+      newErrors.toDate = 'To date cannot be before From date';
     }
+    if (!formData.priority) newErrors.priority = 'Priority is required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    const fetchManagers = async () => {
-      try {
-        const usersRef = collection(firestore, "users");
-        const q = query(usersRef, where("userType", "==", "manager"));
-        const querySnapshot = await getDocs(q);
-
-        const filteredManagers = querySnapshot.docs
-          .map((doc) => ({ id: doc.id, ...doc.data() }))
-          .filter(
-            (user) =>
-              user.assignedCompany &&
-              typeof user.assignedCompany === "object" &&
-              selectedCompany in user.assignedCompany
-          )
-          .map((user) => ({
-            id: user.id,
-            name: user.name || user.displayName || "Unnamed Manager",
-            ...user,
-          }));
-
-        setManagers(filteredManagers);
-        setSelectedManager("");
-      } catch (error) {
-        console.error("Error fetching managers:", error);
-        toast.error("Failed to fetch managers");
-      }
-    };
-
-    fetchManagers();
-  }, [selectedCompany, selectedDepartment]);
+  const handleChange = (e) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setErrors((prev) => ({ ...prev, [e.target.name]: '' }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!selectedCompany) {
-      toast.error("Please select a company");
-      return;
-    }
-    if (!selectedClient) {
-      toast.error("Please select a client");
-      return;
-    }
-    if (!selectedDepartment) {
-      toast.error("Please select a department");
-      return;
-    }
-    if (!selectedManager) {
-      toast.error("Please select a manager");
-      return;
-    }
-    if (!projectName.trim()) {
-      toast.error("Project name is required");
-      return;
-    }
-    if (!projectTimeline.trim()) {
-      toast.error("Please enter project timeline");
-      return;
-    }
-
-    setIsSubmitting(true);
+    if (!validate()) return;
 
     try {
-      await addDoc(collection(firestore, "projects"), {
-        projectName,
-        companyId: selectedCompany,
-        department: selectedDepartment,
-        managerId: selectedManager,
-        clientId: selectedClient,
-        projectTimeline,
-        description,
-        createdAt: new Date(),
+      await addDoc(collection(firestore, 'projects'), {
+        companyId: formData.company,
+        clientId: formData.client,
+        projectName: formData.projectName,
+        projectTimeline: `${formData.fromDate} to ${formData.toDate}`,
+        description: formData.description,
+        priority: formData.priority,
+        createdAt: serverTimestamp(),
+        status: 'active',
+        createdBy: 'system',
       });
 
-      toast.success("Project added successfully!");
+      toast({
+        title: 'Project Created',
+        description: `Project "${formData.projectName}" was added successfully.`,
+      });
 
-      setSelectedCompany("");
-      setSelectedClient("");
-      setSelectedDepartment("");
-      setSelectedManager("");
-      setProjectName("");
-      setProjectTimeline("");
-      setDescription("");
-      setManagers([]);
-    } catch (error) {
-      console.error("Error adding project:", error);
-      toast.error("Failed to add project");
-    } finally {
-      setIsSubmitting(false);
+      if (onClose) onClose(); // Close modal or dialog
+    } catch (err) {
+      console.error(err);
+      toast({ variant: 'destructive', title: 'Error', description: err.message });
     }
   };
 
+  const renderError = (key) =>
+    errors[key] && <p className="text-sm text-red-600 mt-1">{errors[key]}</p>;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Company dropdown */}
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[85vh] overflow-y-auto p-4">
+      {/* Company */}
       <div>
-        <label htmlFor="company" className="block text-sm font-medium text-gray-700">
-          Company <span className="text-red-500">*</span>
-        </label>
+        <label className="block text-sm font-medium">Company</label>
         <select
-          id="company"
-          value={selectedCompany}
-          onChange={(e) => setSelectedCompany(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-          required
+          name="company"
+          value={formData.company}
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
         >
           <option value="">Select company</option>
-          {companies.map(({ id, data }) => (
-            <option key={id} value={id}>
-              {data.name || id}
+          {companies.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
             </option>
           ))}
         </select>
+        {renderError('company')}
       </div>
 
-      {/* Client dropdown (only after company selected) */}
-      {selectedCompany && (
-        <div>
-          <label htmlFor="client" className="block text-sm font-medium text-gray-700">
-            Client <span className="text-red-500">*</span>
-          </label>
-          <select
-            id="client"
-            value={selectedClient}
-            onChange={(e) => setSelectedClient(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-            required
-          >
-            <option value="">Select client</option>
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Department dropdown */}
+      {/* Client */}
       <div>
-        <label htmlFor="department" className="block text-sm font-medium text-gray-700">
-          Department <span className="text-red-500">*</span>
-        </label>
+        <label className="block text-sm font-medium">Client</label>
         <select
-          id="department"
-          value={selectedDepartment}
-          onChange={(e) => setSelectedDepartment(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-          required
-          disabled={!selectedCompany}
+          name="client"
+          value={formData.client}
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
         >
-          <option value="">Select department</option>
-          {DEPARTMENTS.map((dept) => (
-            <option key={dept} value={dept}>
-              {dept}
+          <option value="">Select client</option>
+          {clients.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
             </option>
           ))}
         </select>
-      </div>
-
-      {/* Manager dropdown */}
-      <div>
-        <label htmlFor="manager" className="block text-sm font-medium text-gray-700">
-          Manager <span className="text-red-500">*</span>
-        </label>
-        <select
-          id="manager"
-          value={selectedManager}
-          onChange={(e) => setSelectedManager(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-          required
-          disabled={!managers.length}
-        >
-          <option value="">Select manager</option>
-          {managers.map((mgr) => (
-            <option key={mgr.id} value={mgr.id}>
-              {mgr.name}
-            </option>
-          ))}
-        </select>
+        {renderError('client')}
       </div>
 
       {/* Project Name */}
       <div>
-        <label htmlFor="projectName" className="block text-sm font-medium text-gray-700">
-          Project Name <span className="text-red-500">*</span>
-        </label>
         <input
-          id="projectName"
-          type="text"
-          value={projectName}
-          onChange={(e) => setProjectName(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-          placeholder="Enter project name"
-          required
+          name="projectName"
+          placeholder="Project Name"
+          value={formData.projectName}
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
         />
+        {renderError('projectName')}
       </div>
 
-      {/* Project Timeline */}
+      {/* From Date */}
       <div>
-        <label htmlFor="projectTimeline" className="block text-sm font-medium text-gray-700">
-          Project Timeline <span className="text-red-500">*</span>
-        </label>
+        <label className="block text-sm font-medium">From Date</label>
         <input
-          id="projectTimeline"
-          type="text"
-          value={projectTimeline}
-          onChange={(e) => setProjectTimeline(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-          placeholder="e.g., Jan 2025 - Dec 2025"
-          required
+          type="date"
+          name="fromDate"
+          value={formData.fromDate}
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
         />
+        {renderError('fromDate')}
+      </div>
+
+      {/* To Date */}
+      <div>
+        <label className="block text-sm font-medium">To Date</label>
+        <input
+          type="date"
+          name="toDate"
+          value={formData.toDate}
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
+        />
+        {renderError('toDate')}
       </div>
 
       {/* Description */}
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-          Description
-        </label>
         <textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-gray-300 p-2"
-          placeholder="Enter project description"
+          name="description"
+          placeholder="Description"
+          value={formData.description}
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
           rows={3}
         />
       </div>
 
+      {/* Priority */}
+      <div>
+        <label className="block text-sm font-medium">Priority</label>
+        <select
+          name="priority"
+          value={formData.priority}
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
+        >
+          <option value="">Select priority</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        {renderError('priority')}
+      </div>
+
       <button
         type="submit"
-        disabled={isSubmitting}
-        className={`px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 ${
-          isSubmitting ? "opacity-50 cursor-not-allowed" : ""
-        }`}
+        className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
       >
-        {isSubmitting ? "Adding..." : "Add Project"}
+        Save Project
       </button>
     </form>
   );
-};
-
-export default AddProject;
+}

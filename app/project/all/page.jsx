@@ -47,8 +47,8 @@ function Page() {
                 + Add Project
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogTitle className="text-xl font-semibold mb-4">
+            <DialogContent className="max-w-xl overflow-y-auto max-h-screen">
+              <DialogTitle className="text-xl font-semibold mb-2">
                 Add New Project
               </DialogTitle>
               <AddProject />
