@@ -150,7 +150,7 @@ export function AppSidebar({ ...props }) {
     href: "/project",
     children: [
       { title: "All Projects", href: "/project/all", key: "all" },
-      { title: "New Project", href: "/project/new", key: "new" },
+      // { title: "New Project", href: "/project/new", key: "new" },
       { title: "Deliverables", href: "/project/deliverables", key: "deliverables" },
     ],
   },

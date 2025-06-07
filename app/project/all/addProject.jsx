@@ -1,9 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, doc, getDoc, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
 import { firestore } from '@/lib/firebase';
-import { useToast } from '@/hooks/use-toast';
+// import { useToast } from '@/hooks/use-toast';
+import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from '@/components/ui/button';
 
 export default function AddProjectForm({ onClose }) {
   const { toast } = useToast();
@@ -16,6 +26,7 @@ export default function AddProjectForm({ onClose }) {
     toDate: '',
     description: '',
     priority: '',
+    projectBudget: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -30,11 +41,18 @@ export default function AddProjectForm({ onClose }) {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          const list = Object.entries(data).map(([id, val]) => ({ id, name: val.name }));
+          const list = Object.entries(data).map(([id, val]) => ({
+            id,
+            name: val.name,
+          }));
           setCompanies(list);
         }
       } catch (err) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load companies' });
+        toast({
+          
+          title: 'Error',
+          description: 'Failed to load companies',
+        });
       }
     };
     fetchCompanies();
@@ -46,10 +64,17 @@ export default function AddProjectForm({ onClose }) {
     const fetchClients = async () => {
       try {
         const querySnap = await getDocs(collection(firestore, 'clients'));
-        const list = querySnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const list = querySnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
         setClients(list);
       } catch (err) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load clients' });
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to load clients',
+        });
       }
     };
     fetchClients();
@@ -59,9 +84,11 @@ export default function AddProjectForm({ onClose }) {
     const newErrors = {};
     if (!formData.company) newErrors.company = 'Company is required';
     if (!formData.client) newErrors.client = 'Client is required';
-    if (!formData.projectName.trim()) newErrors.projectName = 'Project name is required';
+    if (!formData.projectName.trim())
+      newErrors.projectName = 'Project name is required';
     if (!formData.fromDate) newErrors.fromDate = 'From date is required';
     if (!formData.toDate) newErrors.toDate = 'To date is required';
+    if (!formData.projectBudget) newErrors.projectBudget = 'Project budget is required';
     if (
       formData.fromDate &&
       formData.toDate &&
@@ -92,8 +119,9 @@ export default function AddProjectForm({ onClose }) {
         description: formData.description,
         priority: formData.priority,
         createdAt: serverTimestamp(),
-        status: 'active',
+        status: 'pending',
         createdBy: 'system',
+        projectBudget: formData.projectBudget,
       });
 
       toast({
@@ -101,10 +129,27 @@ export default function AddProjectForm({ onClose }) {
         description: `Project "${formData.projectName}" was added successfully.`,
       });
 
-      if (onClose) onClose(); // Close modal or dialog
+      // ✅ Clear form and errors
+      setFormData({
+        company: '',
+        client: '',
+        projectName: '',
+        fromDate: '',
+        toDate: '',
+        description: '',
+        priority: '',
+        projectBudget: '',
+      });
+      setErrors({});
+
+      if (onClose) onClose(); // ✅ Close modal/dialog if function provided
     } catch (err) {
       console.error(err);
-      toast({ variant: 'destructive', title: 'Error', description: err.message });
+      toast({
+       
+        title: 'Error',
+        description: err.message,
+      });
     }
   };
 
@@ -112,7 +157,8 @@ export default function AddProjectForm({ onClose }) {
     errors[key] && <p className="text-sm text-red-600 mt-1">{errors[key]}</p>;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[85vh] overflow-y-auto p-4">
+    <form onSubmit={handleSubmit} className="space-y-4 p-4">
+
       {/* Company */}
       <div>
         <label className="block text-sm font-medium">Company</label>
@@ -153,6 +199,7 @@ export default function AddProjectForm({ onClose }) {
 
       {/* Project Name */}
       <div>
+        <label className="block text-sm font-medium">Project Name</label>
         <input
           name="projectName"
           placeholder="Project Name"
@@ -191,6 +238,7 @@ export default function AddProjectForm({ onClose }) {
 
       {/* Description */}
       <div>
+        <label className="block text-sm font-medium">Description</label>
         <textarea
           name="description"
           placeholder="Description"
@@ -217,13 +265,24 @@ export default function AddProjectForm({ onClose }) {
         </select>
         {renderError('priority')}
       </div>
+      <div>
+        <label className="block text-sm font-medium">Project Budget</label>
+        <input
+          name="projectBudget"
+          placeholder="Project Budget"
+          value={formData.projectBudget}
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
+        />
+        {renderError('projectBudget')}
+      </div>
 
-      <button
+      <Button className="w-full"
         type="submit"
-        className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+        
       >
         Save Project
-      </button>
+      </Button>
     </form>
   );
 }
