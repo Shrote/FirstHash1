@@ -16,6 +16,7 @@ export default function AddEmployeeForm({ onClose }) {
     address: "",
     userType: "",
     gender: "",
+    salary: "",
     
   });
   const { toast } = useToast();
@@ -102,6 +103,14 @@ export default function AddEmployeeForm({ onClose }) {
         value={formData.address}
         onChange={handleChange}
         placeholder="Address"
+        required
+        className="w-full p-2 border rounded"
+      />
+      <input
+        name="salary"
+        value={formData.salary}
+        onChange={handleChange}
+        placeholder="Salary"
         required
         className="w-full p-2 border rounded"
       />

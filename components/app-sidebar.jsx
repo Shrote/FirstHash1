@@ -158,10 +158,6 @@ export function AppSidebar({ ...props }) {
     icon: IndianRupee, // ₹
     permission: "salary",
     href: "/salary",
-    children: [
-      { title: "Pending", href: "/salary/pending", key: "pending" },
-      { title: "Paid", href: "/salary/paid", key: "paid" },
-    ],
   },
 ],
 

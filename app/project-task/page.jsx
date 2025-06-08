@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { firestore } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -33,57 +33,63 @@ import AddTaskForm from "@/components/AddTaskForm";
 
 export default function ProjectTasksPage() {
   const [tasks, setTasks] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
   const [filteredTasks, setFilteredTasks] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const router = useRouter();
 
-  const fetchTasks = useCallback(async () => {
-    try {
-      const taskCollection = collection(firestore, "tasks");
-      const taskDocs = await getDocs(taskCollection);
-      const tasksData = taskDocs.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          createdAt: data.createdAt?.toDate?.() ?? null,
-          dueDate: data.dueDate?.toDate?.() ?? null,
-        };
-      });
-      setTasks(tasksData);
-      setFilteredTasks(tasksData);
-    } catch (error) {
-      console.error("Error fetching tasks:", error);
-    }
+  // Fetch tasks in real-time
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(firestore, "project_tasks"),
+      (snapshot) => {
+        const tasksData = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate?.() ?? null,
+            dueDate: data.dueDate?.toDate?.() ?? null,
+          };
+        });
+        setTasks(tasksData);
+      },
+      (error) => {
+        console.error("Error with snapshot:", error);
+      }
+    );
+
+    return () => unsubscribe();
   }, []);
 
+  // Filter whenever tasks/search/status change
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    let filtered = [...tasks];
 
-  const handleFilterChange = (e) => {
-    const status = e.target.value;
-    setStatusFilter(status);
-    if (status === "All") {
-      setFilteredTasks(tasks);
-    } else {
-      setFilteredTasks(tasks.filter((task) => task.status === status));
+    if (statusFilter !== "All") {
+      filtered = filtered.filter((task) => task.status === statusFilter);
     }
-  };
+
+    if (searchQuery.trim() !== "") {
+      filtered = filtered.filter((task) =>
+        (task.title || "").toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    setFilteredTasks(filtered);
+  }, [tasks, statusFilter, searchQuery]);
 
   const handleSearch = (e) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    const filtered = tasks.filter((task) =>
-      task.taskName.toLowerCase().includes(query.toLowerCase())
-    );
-    setFilteredTasks(filtered);
+    setSearchQuery(e.target.value);
+  };
+
+  const handleFilterChange = (e) => {
+    setStatusFilter(e.target.value);
   };
 
   const handleViewTask = (taskId) => {
-    router.push(`/task/${taskId}`);
+    router.push(`/project-task/${taskId}`);
   };
 
   return (
@@ -119,9 +125,9 @@ export default function ProjectTasksPage() {
               className="py-2 px-3 border rounded-md border-gray-300"
             >
               <option value="All">All Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Ongoing">Ongoing</option>
-              <option value="Completed">Completed</option>
+              <option value="pending">Pending</option>
+              <option value="ongoing">Ongoing</option>
+              <option value="completed">Completed</option>
             </select>
             <Button onClick={() => setIsModalOpen(true)}>Add Task</Button>
           </div>
@@ -142,7 +148,7 @@ export default function ProjectTasksPage() {
           <TableBody>
             {filteredTasks.map((task) => (
               <TableRow key={task.id}>
-                <TableCell>{task.taskName || "N/A"}</TableCell>
+                <TableCell>{task.title || "N/A"}</TableCell>
                 <TableCell>{task.projectName || "N/A"}</TableCell>
                 <TableCell>
                   <span
@@ -177,7 +183,7 @@ export default function ProjectTasksPage() {
           <DialogHeader>
             <DialogTitle>Add New Task</DialogTitle>
           </DialogHeader>
-          <AddTaskForm/>
+          <AddTaskForm onClose={() => setIsModalOpen(false)} />
         </DialogContent>
       </Dialog>
     </>

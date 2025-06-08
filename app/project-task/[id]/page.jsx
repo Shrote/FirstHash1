@@ -4,9 +4,6 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
-import { storage } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Label } from "@/components/ui/label";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,259 +12,173 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import imageCompression from "browser-image-compression";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "react-hot-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { getDocs, collection } from "firebase/firestore";
+import { Label } from "@/components/ui/label";
 
-export default function UserProfile() {
-  const [user, setUser] = useState(null);
-  const [isEditable, setIsEditable] = useState(false);
-  const [updatedUser, setUpdatedUser] = useState({});
+export default function TaskProfilePage() {
+  const { id } = useParams();
   const router = useRouter();
-  const params = useParams();
-  const [isActive, setIsActive] = useState(true);
+  const [task, setTask] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isEditable, setIsEditable] = useState(false);
+  const [updatedTask, setUpdatedTask] = useState({});
+  const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [companies, setCompanies] = useState([]);
-  const [selectedCompanies, setSelectedCompanies] = useState({});
-  const [accessLevels, setAccessLevels] = useState({});
-
-  const fetchUserData = async () => {
-    if (!params.id) return;
-
-    try {
-      const userDocRef = doc(firestore, "users", params.id);
-      const userDoc = await getDoc(userDocRef);
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setUser(userData);
-
-        // Initialize access levels
-        const initialAccessLevels = {};
-        if (userData.accessLevelMap) {
-          Object.entries(userData.accessLevelMap).forEach(([key, value]) => {
-            initialAccessLevels[key] = value === true || value === "true";
-          });
-        }
-        setAccessLevels(initialAccessLevels);
-
-        // Initialize selected companies
-        const initialSelected = {};
-        if (
-          userData.assignedCompany &&
-          typeof userData.assignedCompany === "object"
-        ) {
-          Object.keys(userData.assignedCompany).forEach((companyId) => {
-            initialSelected[companyId] = true;
-          });
-        }
-        setSelectedCompanies(initialSelected);
-
-        setUpdatedUser(userData);
-        setIsActive(userData.profileStatus === "Active");
-      } else {
-        console.error("No user found with the given ID.");
-      }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-    }
-  };
-
-  const fetchCompanies = async () => {
-    try {
-      const companyDocRef = doc(firestore, "DropdownMenu", "companyName");
-      const companyDoc = await getDoc(companyDocRef);
-
-      if (companyDoc.exists()) {
-        const companyData = companyDoc.data();
-        const companiesArray = Object.entries(companyData).map(
-          ([id, data]) => ({
-            id,
-            ...data,
-          })
-        );
-        setCompanies(companiesArray);
-      } else {
-        // Try with lowercase collection name as fallback
-        const companyDocRef = doc(firestore, "dropdownMenu", "companyName");
-        const companyDoc = await getDoc(companyDocRef);
-
-        if (companyDoc.exists()) {
-          const companyData = companyDoc.data();
-          const companiesArray = Object.entries(companyData).map(
-            ([id, data]) => ({
-              id,
-              ...data,
-            })
-          );
-          setCompanies(companiesArray);
-        } else {
-          console.error("No company data found.");
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching company data:", error);
-    }
-  };
 
   useEffect(() => {
-    fetchUserData();
-    fetchCompanies();
-  }, [params.id]);
+    const fetchTask = async () => {
+      try {
+        const taskDoc = await getDoc(doc(firestore, "project_tasks", id));
+        if (taskDoc.exists()) {
+          const data = taskDoc.data();
+          const taskData = {
+            id: taskDoc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate?.() ?? null,
+            dueDate: data.dueDate?.toDate?.() ?? null, // <-- fix here
+          };
+
+          setTask(taskData);
+          setUpdatedTask(taskData);
+        }
+      } catch (err) {
+        console.error("Error fetching task:", err);
+        toast.error("error fetching task");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchCompanies = async () => {
+      try {
+        const docRef = doc(firestore, "dropdownMenu", "companyName");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const companyList = Object.entries(data).map(([id, company]) => ({
+            id,
+            name: company.name,
+          }));
+          setCompanies(companyList);
+        }
+      } catch (error) {
+        toast.error("Error fetching companies:", error);
+      }
+    };
+
+    const fetchUsers = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(firestore, "users"));
+        const userList = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setUsers(userList);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+
+    const fetchProjects = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(firestore, "projects"));
+        const projectList = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setProjects(projectList);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      }
+    };
+
+    if (id) {
+      fetchTask();
+      fetchCompanies();
+      fetchUsers();
+      fetchProjects();
+    }
+  }, [id]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setUpdatedUser((prevState) => ({
-      ...prevState,
-      [name]: value,
-    }));
-  };
-
-  const compressImage = async (file) => {
-    const options = {
-      maxSizeMB: 0.1,
-      maxWidthOrHeight: 800,
-      useWebWorker: true,
-    };
-    try {
-      let compressedFile = await imageCompression(file, options);
-      while (compressedFile.size > 100 * 1024 && options.maxSizeMB > 0.01) {
-        options.maxSizeMB -= 0.01;
-        compressedFile = await imageCompression(file, options);
-      }
-      return compressedFile;
-    } catch (error) {
-      console.error("Image compression error:", error);
-      return file;
-    }
-  };
-
-  const handleStatusToggle = async (checked) => {
-    if (!params.id) return;
-
-    const newStatus = checked ? "Active" : "Inactive";
-
-    try {
-      const productDocRef = doc(firestore, "users", params.id);
-      await updateDoc(productDocRef, { profileStatus: newStatus });
-
-      setIsActive(checked);
-      toast.success(`User status updated to ${newStatus}`);
-    } catch (error) {
-      toast.error("Failed to update User status.");
-    }
-  };
-
-  const handleAccessLevelChange = (key, checked) => {
-    setAccessLevels((prev) => ({
+    setUpdatedTask((prev) => ({
       ...prev,
-      [key]: checked,
+      [name]: name === "dueDate" ? new Date(value) : value,
     }));
   };
 
-  const handleProfileImageChange = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      try {
-        const compressedFile = await compressImage(file);
-        const imageRef = ref(
-          storage,
-          `users/${Date.now()}_${compressedFile.name}`
-        );
-        const snapshot = await uploadBytes(imageRef, compressedFile);
-        const downloadURL = await getDownloadURL(snapshot.ref);
+  const handleSelectChange = (name, value) => {
+    setUpdatedTask((prev) => ({ ...prev, [name]: value }));
+  };
 
-        setUpdatedUser((prevState) => ({
-          ...prevState,
-          profileImage: downloadURL,
-        }));
-      } catch (error) {
-        console.error("Error uploading image:", error);
-      }
+  const handleUserToggle = (userId) => {
+    setUpdatedTask((prev) => {
+      const currentAssignedTo = Array.isArray(prev.assignedTo)
+        ? prev.assignedTo
+        : [];
+      const newAssignedTo = currentAssignedTo.includes(userId)
+        ? currentAssignedTo.filter((id) => id !== userId)
+        : [...currentAssignedTo, userId];
+      return { ...prev, assignedTo: newAssignedTo };
+    });
+  };
+
+  const handleSave = async () => {
+    try {
+      await updateDoc(doc(firestore, "project_tasks", id), updatedTask);
+      setTask(updatedTask);
+      setIsEditable(false);
+      toast.success("Task updated successfully.");
+    } catch (error) {
+      console.error("Error updating task:", error);
+      toast.error("Failed to update task.");
     }
   };
 
-  const handleCompanySelection = (companyId, isChecked) => {
-    setSelectedCompanies((prev) => ({
-      ...prev,
-      [companyId]: isChecked,
-    }));
-  };
+  if (loading) {
+    return (
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-full" />
+      </div>
+    );
+  }
 
-  const handleSaveOrEdit = async () => {
-    if (isEditable) {
-      if (!params.id) return;
-
-      try {
-        // Prepare assigned companies data
-        const assignedCompanyMap = {};
-        Object.entries(selectedCompanies).forEach(([companyId, isSelected]) => {
-          if (isSelected) {
-            const company = companies.find((c) => c.id === companyId);
-            if (company) {
-              assignedCompanyMap[companyId] = {
-                name: company.name,
-                address: company.address || "",
-                contactPersons: company.contactPersons || "",
-                phone: company.phone || "",
-                email: company.email || "",
-                status: company.status || "Active",
-              };
-            }
-          }
-        });
-
-        // Prepare access levels data
-        const accessLevelMap = {};
-        Object.entries(accessLevels).forEach(([key, value]) => {
-          accessLevelMap[key] = value;
-        });
-
-        const dataToSave = {
-          ...updatedUser,
-          assignedCompany: assignedCompanyMap,
-          accessLevelMap,
-        };
-
-        const userDocRef = doc(firestore, "users", params.id);
-        await updateDoc(userDocRef, dataToSave);
-
-        setIsEditable(false);
-        toast.success("User data updated successfully!", {
-          position: "top-right",
-        });
-        fetchUserData();
-      } catch (error) {
-        console.error("Error saving user data:", error);
-        toast.error("Error saving user data.", { position: "top-right" });
-      }
-    } else {
-      setIsEditable(true);
-    }
-  };
-
-  if (!user) {
-    return <p>Loading user details...</p>;
+  if (!task) {
+    return <div className="p-6 text-red-600">Task not found</div>;
   }
 
   return (
     <>
       <header className="flex h-16 shrink-0 items-center gap-2">
         <div className="flex items-center gap-2 px-4">
-          <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbPage href="/user">Users</BreadcrumbPage>
+                <BreadcrumbPage href="/tasks">Tasks</BreadcrumbPage>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{updatedUser.name}</BreadcrumbPage>
+                <BreadcrumbPage>{task.title}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -276,258 +187,224 @@ export default function UserProfile() {
       <main className="p-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">User Profile</CardTitle>
-            <div className="flex items-center gap-4 ml-auto mt-[-4px]">
-              <Label className="text-lg font-semibold">User Status</Label>
-              <Switch checked={isActive} onCheckedChange={handleStatusToggle} />
-              <span
-                className={`text-xl font-bold ${
-                  isActive ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {isActive ? "ACTIVE" : "INACTIVE"}
-              </span>
-            </div>
+            <CardTitle className="text-2xl">Task Details</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Name
-                  </label>
-                  <Input
-                    type="text"
-                    name="name"
-                    value={updatedUser.name || ""}
-                    onChange={handleInputChange}
-                    disabled={!isEditable}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Gender
-                  </label>
-                  <select
-                    name="gender"
-                    value={updatedUser.gender || ""}
-                    onChange={handleInputChange}
-                    disabled={!isEditable}
-                    className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  >
-                    <option value="" disabled>
-                      Select Gender
-                    </option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                    <option value="prefer-not-to-say">Prefer not to say</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Email
-                  </label>
-                  <Input
-                    type="email"
-                    name="email"
-                    value={updatedUser.email || ""}
-                    onChange={handleInputChange}
-                    disabled={!isEditable}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Phone
-                  </label>
-                  <Input
-                    type="text"
-                    name="phone"
-                    value={updatedUser.phone || ""}
-                    onChange={handleInputChange}
-                    disabled={!isEditable}
-                    className="mt-1"
-                  />
-                </div>
-                <div className="mt-4">
-                  <h3 className="text-base font-semibold text-gray-800">
-                    Access Levels
-                  </h3>
-                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                    {Object.entries(accessLevels).length > 0 ? (
-                      Object.entries(accessLevels).map(([key, value]) => (
-                        <div
-                          key={key}
-                          className="flex justify-between items-center border border-gray-300 px-2 py-1 rounded text-sm"
-                        >
-                          <span className="truncate">{key}</span>
-                          {isEditable ? (
-                            <Checkbox
-                              checked={value}
-                              onCheckedChange={(checked) =>
-                                handleAccessLevelChange(key, checked)
-                              }
-                            />
-                          ) : (
-                            <span className="text-xs text-gray-600">
-                              {value ? "Enabled" : "Disabled"}
-                            </span>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-500">
-                        No access levels assigned.
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {updatedUser.userType === "Sales" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Agent ID
-                    </label>
+                  <Label className="block text-sm font-medium">Title</Label>
+                  {isEditable ? (
                     <Input
-                      type="text"
-                      name="agentId"
-                      value={updatedUser.agentId || ""}
+                      name="title"
+                      value={updatedTask.title || ""}
                       onChange={handleInputChange}
-                      disabled={!isEditable}
                       className="mt-1"
                     />
-                  </div>
-                )}
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Profile Image
-                  </label>
-                  <div className="mt-1 flex items-center">
-                    <img
-                      src={updatedUser.profileImage || "/placeholder.png"}
-                      alt="Profile"
-                      className="h-32 w-32 object-cover rounded-md"
-                    />
-                    {isEditable && (
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleProfileImageChange}
-                        className="ml-4"
-                      />
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Roll
-                  </label>
-                  <select
-                    name="userType"
-                    value={updatedUser.userType || ""}
-                    onChange={handleInputChange}
-                    disabled={!isEditable}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select Roll</option>
-                    <option value="admin">Admin</option>
-                    <option value="employee">Employee</option>
-                    <option value="manager">Manager</option>
-                  </select>
+                  ) : (
+                    <p className="mt-1 text-sm text-gray-900 p-2 bg-gray-50 rounded">
+                      {task.title}
+                    </p>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Address
-                  </label>
-                  <Input
-                    type="text"
-                    name="address"
-                    value={updatedUser.address || ""}
-                    onChange={handleInputChange}
-                    disabled={!isEditable}
-                    className="mt-1"
-                  />
+                  <Label className="block text-sm font-medium">Project</Label>
+                  {isEditable ? (
+                    <Select
+                      value={updatedTask.projectName}
+                      onValueChange={(value) =>
+                        handleSelectChange("projectName", value)
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select project" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.projectName || project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="mt-1 text-sm text-gray-900 p-2 bg-gray-50 rounded">
+  {
+    projects.find((p) => p.id === task.projectName)?.projectName ||
+    projects.find((p) => p.id === task.projectName)?.name ||
+    task.projectName
+  }
+</p>
+
+                  )}
                 </div>
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Assigned Companies
-                  </label>
-                  <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border rounded-md p-3">
-                    {companies.length > 0 ? (
-                      isEditable ? (
-                        // Editable mode: show all companies with checkboxes
-                        companies.map((company) => (
+
+                <div>
+                  <Label className="block text-sm font-medium">Status</Label>
+                  {isEditable ? (
+                    <Select
+                      value={updatedTask.status}
+                      onValueChange={(value) =>
+                        handleSelectChange("status", value)
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="ongoing">Ongoing</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="mt-1 text-sm text-gray-900 p-2 bg-gray-50 rounded">
+                      {task.status}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label className="block text-sm font-medium">
+                    Created At
+                  </Label>
+                  <p className="mt-1 text-sm text-gray-900 p-2 bg-gray-50 rounded">
+                    {task.createdAt?.toLocaleDateString() || "N/A"}
+                  </p>
+                </div>
+
+                <div>
+                  <Label className="block text-sm font-medium">Due Date</Label>
+                  {isEditable ? (
+                    <Input
+                      type="date"
+                      name="dueDate"
+                      value={
+                        updatedTask.dueDate
+                          ? new Date(updatedTask.dueDate)
+                              .toISOString()
+                              .split("T")[0]
+                          : ""
+                      } // Format to 'YYYY-MM-DD'
+                      onChange={handleInputChange}
+                    />
+                  ) : (
+                   <p className="mt-1 text-sm text-gray-900 p-2 bg-gray-50 rounded">
+  {task.dueDate ? task.dueDate.toLocaleDateString() : "N/A"}
+</p>
+
+                  )}
+                </div>
+
+                <div>
+                  <Label className="block text-sm font-medium">
+                    Assigned To
+                  </Label>
+                  {isEditable ? (
+                    <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border rounded-md p-3">
+                      {users.length > 0 ? (
+                        users.map((user) => (
                           <div
-                            key={company.id}
-                            className="flex items-start gap-3 p-2 bg-white border rounded shadow-sm"
+                            key={user.id}
+                            className="flex items-start gap-3 p-2"
                           >
                             <Checkbox
-                              id={`company-${company.id}`}
-                              checked={selectedCompanies[company.id] || false}
-                              onCheckedChange={(checked) =>
-                                handleCompanySelection(company.id, checked)
+                              id={`user-${user.id}`}
+                              checked={
+                                Array.isArray(updatedTask.assignedTo) &&
+                                updatedTask.assignedTo.includes(user.id)
                               }
-                              disabled={!isEditable}
+                              onCheckedChange={() => handleUserToggle(user.id)}
                             />
-                            <div>
-                              <label
-                                htmlFor={`company-${company.id}`}
-                                className="font-semibold cursor-pointer"
-                              >
-                                {company.name}
-                              </label>
-                              {company.address && (
-                                <p className="text-xs text-gray-500">
-                                  {company.address}
-                                </p>
-                              )}
-                            </div>
+                            <label
+                              htmlFor={`user-${user.id}`}
+                              className="font-medium"
+                            >
+                              {user.name} ({user.email})
+                            </label>
                           </div>
                         ))
                       ) : (
-                        // Read-only mode: show only assigned companies
-                        companies
-                          .filter((company) => selectedCompanies[company.id])
-                          .map((company) => (
-                            <div
-                              key={company.id}
-                              className="p-2 bg-white border rounded shadow-sm"
-                            >
-                              <p className="font-semibold">{company.name}</p>
-                              {company.address && (
-                                <p className="text-xs text-gray-500">
-                                  {company.address}
-                                </p>
-                              )}
-                            </div>
-                          ))
-                      )
-                    ) : (
-                      <p className="text-sm text-gray-500">
-                        No companies available.
-                      </p>
-                    )}
-                  </div>
+                        <p className="text-sm text-gray-500">
+                          No users available
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-1">
+                      {Array.isArray(task.assignedTo) &&
+                      task.assignedTo.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {task.assignedTo.map((userId) => {
+                            const user = users.find((u) => u.id === userId);
+                            return (
+                              <span
+                                key={userId}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                              >
+                                {user ? `${user.name}` : userId}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          No users assigned
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
+
+            <div className="mt-6">
+              <Label className="block text-sm font-medium">Description</Label>
+              {isEditable ? (
+                <Textarea
+                  name="description"
+                  value={updatedTask.description || ""}
+                  onChange={handleInputChange}
+                  className="mt-1"
+                  rows={4}
+                />
+              ) : (
+                <div className="mt-1 p-3 bg-gray-50 rounded text-sm text-gray-900 whitespace-pre-line">
+                  {task.description || "No description provided"}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
+
         <div className="mt-6 flex justify-between">
-          <Button onClick={() => router.push("/user")} variant="default">
-            Back to Users List
+          <Button onClick={() => router.push("/project-task")} variant="default">
+            Back to Tasks
           </Button>
-          <Button onClick={handleSaveOrEdit} variant="default">
-            {isEditable ? "Save Changes" : "Edit Profile"}
-          </Button>
+          <div className="flex gap-2">
+            {isEditable && (
+              <Button
+                onClick={() => {
+                  setIsEditable(false);
+                  setUpdatedTask(task); // Reset changes
+                }}
+                variant="outline"
+              >
+                Cancel
+              </Button>
+            )}
+            <Button
+              onClick={() => (isEditable ? handleSave() : setIsEditable(true))}
+              variant="default"
+            >
+              {isEditable ? "Save Changes" : "Edit Task"}
+            </Button>
+          </div>
         </div>
       </main>
-      <ToastContainer />
     </>
   );
 }

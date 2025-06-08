@@ -216,6 +216,7 @@ export default function UserProfile() {
                 phone: company.phone || "",
                 email: company.email || "",
                 status: company.status || "Active",
+                salary: company.salary || 0,
               };
             }
           }
@@ -424,7 +425,20 @@ export default function UserProfile() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Roll
+                    Salary
+                  </label>
+                  <Input
+                    type="salary"
+                    name="salary"
+                    value={updatedUser.salary || ""}
+                    onChange={handleInputChange}
+                    disabled={!isEditable}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Role
                   </label>
                   <select
                     name="userType"

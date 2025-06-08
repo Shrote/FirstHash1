@@ -1,9 +1,10 @@
 "use client";
 import ProtectedRoute from "@/components/protectedRoute";
 
-export default function ClientLayout({ children }) {
+
+export default function AttendenceLayout({ children }) {
   return (
-    <ProtectedRoute requiredPermission="client">
+    <ProtectedRoute requiredPermission="attendence">
       {children}
     </ProtectedRoute>
   );

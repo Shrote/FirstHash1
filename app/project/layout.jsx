@@ -2,9 +2,9 @@
 import ProtectedRoute from "@/components/protectedRoute";
 import { Toaster } from "react-hot-toast";
 
-export default function ClientLayout({ children }) {
+export default function ProjectLayout({ children }) {
   return (
-    <ProtectedRoute requiredPermission="client">
+    <ProtectedRoute requiredPermission="project">
             <Toaster position="top-right" />
 
       {children}

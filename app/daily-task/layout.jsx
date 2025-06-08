@@ -1,9 +1,9 @@
 "use client";
 import ProtectedRoute from "@/components/protectedRoute";
 
-export default function ClientLayout({ children }) {
+export default function DailyTaskLayout({ children }) {
   return (
-    <ProtectedRoute requiredPermission="client">
+    <ProtectedRoute requiredPermission="daily-task">
       {children}
     </ProtectedRoute>
   );
