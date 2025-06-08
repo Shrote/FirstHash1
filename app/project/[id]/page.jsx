@@ -1,9 +1,8 @@
-// app/project/[id]/page.jsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, getDocs } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +33,9 @@ export default function ProjectDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isEditable, setIsEditable] = useState(false);
   const [editedProject, setEditedProject] = useState(null);
+  const [allDeliverables, setAllDeliverables] = useState([]);
+  const [isDeliverablesOpen, setIsDeliverablesOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     if (!id) return;
@@ -50,6 +52,7 @@ export default function ProjectDetailPage() {
             createdAt: data.createdAt?.toDate
               ? data.createdAt.toDate().toLocaleDateString()
               : "N/A",
+            deliverables: Array.isArray(data.deliverables) ? data.deliverables : [],
           };
           setProject(projectData);
           setEditedProject(projectData);
@@ -66,6 +69,40 @@ export default function ProjectDetailPage() {
     fetchProject();
   }, [id]);
 
+  // Fetch deliverables when entering edit mode
+  useEffect(() => {
+    if (!isEditable) return;
+
+    const fetchDeliverables = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(firestore, "deliverables"));
+        const deliverables = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setAllDeliverables(deliverables);
+      } catch (error) {
+        console.error("Error fetching deliverables:", error);
+        toast.error("Failed to load deliverables");
+      }
+    };
+
+    fetchDeliverables();
+  }, [isEditable]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDeliverablesOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setEditedProject((prev) => ({
@@ -81,6 +118,20 @@ export default function ProjectDetailPage() {
     }));
   };
 
+  const handleDeliverableToggle = (deliverableId) => {
+    setEditedProject(prev => {
+      const currentDeliverables = prev.deliverables || [];
+      const newDeliverables = currentDeliverables.includes(deliverableId)
+        ? currentDeliverables.filter(id => id !== deliverableId)
+        : [...currentDeliverables, deliverableId];
+      
+      return {
+        ...prev,
+        deliverables: newDeliverables
+      };
+    });
+  };
+
   const handleSave = async () => {
     try {
       const docRef = doc(firestore, "projects", id);
@@ -93,23 +144,15 @@ export default function ProjectDetailPage() {
         status: editedProject.status,
         projectBudget: editedProject.projectBudget,
         description: editedProject.description,
+        deliverables: editedProject.deliverables,
       });
 
       setProject(editedProject);
       setIsEditable(false);
-
-      toast({
-        title: "Success",
-        description: "Project updated successfully",
-        variant: "default",
-      });
+      toast.success("Project updated successfully!");
     } catch (error) {
       console.error("Error updating project:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update project",
-        variant: "destructive",
-      });
+      toast.error("Failed to update project.");
     }
   };
 
@@ -140,22 +183,15 @@ export default function ProjectDetailPage() {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="text-2xl">Project Details</CardTitle>
-              {/* <Button 
-                onClick={() => setIsEditable(!isEditable)}
-                variant={isEditable ? "outline" : "default"}
-              >
-                {isEditable ? "Cancel" : "Edit Project"}
-              </Button> */}
             </div>
           </CardHeader>
 
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Column */}
               <div className="space-y-4">
                 <div>
-                  <Label className="block text-sm font-medium">
-                    Project Name
-                  </Label>
+                  <Label className="block text-sm font-medium">Project Name</Label>
                   {isEditable ? (
                     <Input
                       name="projectName"
@@ -187,9 +223,7 @@ export default function ProjectDetailPage() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-medium">
-                    Company ID
-                  </Label>
+                  <Label className="block text-sm font-medium">Company ID</Label>
                   {isEditable ? (
                     <Input
                       name="companyId"
@@ -221,6 +255,7 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
 
+              {/* Right Column */}
               <div className="space-y-4">
                 <div>
                   <Label className="block text-sm font-medium">Priority</Label>
@@ -276,9 +311,7 @@ export default function ProjectDetailPage() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-medium">
-                    Created At
-                  </Label>
+                  <Label className="block text-sm font-medium">Created At</Label>
                   <p className="mt-1 text-sm text-gray-900 p-2 bg-gray-50 rounded">
                     {project.createdAt}
                   </p>
@@ -303,6 +336,72 @@ export default function ProjectDetailPage() {
               </div>
             </div>
 
+            {/* Deliverables Section */}
+            <div className="mt-6">
+              <Label className="block text-sm font-medium">Deliverables</Label>
+              {isEditable ? (
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsDeliverablesOpen(!isDeliverablesOpen)}
+                    className="w-full p-2 border rounded text-left flex justify-between items-center mt-1"
+                  >
+                    {editedProject.deliverables?.length > 0
+                      ? `${editedProject.deliverables.length} selected`
+                      : "Select deliverables"}
+                    <svg
+                      className={`w-4 h-4 ml-2 transition-transform ${isDeliverablesOpen ? "rotate-180" : ""}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {isDeliverablesOpen && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border rounded shadow-lg max-h-60 overflow-auto">
+                      {allDeliverables.map((del) => (
+                        <label
+                          key={del.id}
+                          className="flex items-center p-2 hover:bg-gray-100 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={editedProject.deliverables?.includes(del.id) || false}
+                            onChange={() => handleDeliverableToggle(del.id)}
+                            className="mr-2"
+                          />
+                          {del.title}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="mt-2">
+                  {project.deliverables?.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {project.deliverables.map(deliverableId => {
+                        const deliverable = allDeliverables.find(d => d.id === deliverableId);
+                        return (
+                          <span 
+                            key={deliverableId} 
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                          >
+                            {deliverable ? deliverable.title : deliverableId}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No deliverables assigned</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Description Section */}
             <div className="mt-6">
               <Label className="block text-sm font-medium">Description</Label>
               {isEditable ? (
@@ -329,7 +428,7 @@ export default function ProjectDetailPage() {
           <Button
             onClick={() => {
               if (isEditable) {
-                handleSave(); // Call save before turning off edit mode
+                handleSave();
               }
               setIsEditable(!isEditable);
             }}
@@ -337,12 +436,6 @@ export default function ProjectDetailPage() {
           >
             {isEditable ? "Save Changes" : "Edit Project"}
           </Button>
-
-          {/* {isEditable && (
-            // <Button onClick={handleSave} variant="default">
-            //   Save Changes
-            // </Button>
-          )} */}
         </div>
       </main>
     </>

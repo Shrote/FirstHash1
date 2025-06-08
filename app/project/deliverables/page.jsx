@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -23,28 +24,67 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog";
-import React, { useState } from "react";
-import { Separator } from "@radix-ui/react-dropdown-menu";
-// import { AddDeliverablesForm } from "@/components/forms/AddDeliverablesForm";
+import { Separator } from "@/components/ui/separator";
+import { firestore } from "@/lib/firebase";
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  getDoc,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { X } from "lucide-react";
+import toast from "react-hot-toast";
+import AddDeliverablesForm from "./addDeliverables";
 
-function DeliverablesPage() {
+const DeliverablesPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingDeliverable, setEditingDeliverable] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deliverables, setDeliverables] = useState([]);
 
-  const handleAddNewDeliverablesClick = () => {
+  useEffect(() => {
+    fetchDeliverables();
+  }, []);
+
+  const fetchDeliverables = async () => {
+    const selectedCompany = localStorage.getItem("selectedCompany");
+    if (!selectedCompany) return;
+
+    const snapshot = await getDocs(collection(firestore, "deliverables"));
+    const items = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((item) => item.company === selectedCompany);
+    setDeliverables(items);
+  };
+
+  const handleEditClick = async (id) => {
+    const ref = doc(firestore, "deliverables", id);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      setEditingDeliverable({ id, ...snap.data() });
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleAddNew = () => {
+    setEditingDeliverable(null);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setEditingDeliverable(null);
+    fetchDeliverables();
   };
 
-  const handleViewDeliverables = (id) => {
-    // View logic here
-  };
-
-  const filteredDeliverables = []; // Replace with actual filtered list
+  const filteredDeliverables = deliverables.filter((item) =>
+    item.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <>
@@ -63,19 +103,19 @@ function DeliverablesPage() {
       </header>
 
       <div className="space-y-4 p-6">
-        <h2 className="text-3xl font-semibold text-gray-900">Deliverables</h2>
+        <h2 className="text-3xl font-semibold">Deliverables</h2>
         <div className="flex justify-between items-center mb-4">
           <Input
             type="text"
             placeholder="Search Deliverables..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm py-2 px-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition ease-in-out duration-200"
+            className="max-w-sm"
           />
-          <Button onClick={handleAddNewDeliverablesClick}>Add New Deliverable</Button>
+          <Button onClick={handleAddNew}>Add New Deliverable</Button>
         </div>
 
-        <Table className="overflow-x-auto shadow-md rounded-lg">
+        <Table>
           <TableCaption>All registered Deliverables</TableCaption>
           <TableHeader>
             <TableRow>
@@ -87,12 +127,14 @@ function DeliverablesPage() {
           </TableHeader>
           <TableBody>
             {filteredDeliverables.map((item) => (
-              <TableRow key={item.id} className="hover:bg-gray-100">
-                <TableCell>{item.title || "N/A"}</TableCell>
-                <TableCell>{item.description || "N/A"}</TableCell>
-                <TableCell>{item.createdAt?.toLocaleString() || "N/A"}</TableCell>
+              <TableRow key={item.id}>
+                <TableCell>{item.title}</TableCell>
+                <TableCell>{item.description}</TableCell>
                 <TableCell>
-                  <Button onClick={() => handleViewDeliverables(item.id)}>View</Button>
+                  {item.createdAt?.toDate?.().toLocaleString() || "N/A"}
+                </TableCell>
+                <TableCell>
+                  <Button onClick={() => handleEditClick(item.id)}>Edit</Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -102,14 +144,22 @@ function DeliverablesPage() {
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Add New Deliverable</DialogTitle>
+          <DialogHeader className="flex justify-between items-center">
+            <DialogTitle>
+              {editingDeliverable ? "Edit Deliverable" : "Add Deliverable"}
+            </DialogTitle>
+            <DialogClose asChild>
+            </DialogClose>
           </DialogHeader>
-          {/* <AddDeliverablesForm onClose={handleCloseModal} /> */}
+
+          <AddDeliverablesForm
+            onClose={handleCloseModal}
+            editingData={editingDeliverable}
+          />
         </DialogContent>
       </Dialog>
     </>
   );
-}
+};
 
 export default DeliverablesPage;
