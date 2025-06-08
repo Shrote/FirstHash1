@@ -30,7 +30,6 @@ import AddProject from "./addProject";
 import { firestore } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import toast from "react-hot-toast";
-import { Link } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function Page() {
@@ -38,7 +37,10 @@ export default function Page() {
   const [projects, setProjects] = useState([]);
   const [filteredProjects, setFilteredProjects] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-const router = useRouter();
+  const [statusFilter, setStatusFilter] = useState("");
+
+  const router = useRouter();
+
   const fetchProjects = useCallback(async () => {
     try {
       const productsCollection = collection(firestore, "projects");
@@ -54,7 +56,7 @@ const router = useRouter();
       setProjects(productsData);
       setFilteredProjects(productsData);
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error("Error fetching projects:", error);
     }
   }, []);
 
@@ -64,11 +66,19 @@ const router = useRouter();
 
   useEffect(() => {
     const query = searchQuery.toLowerCase();
-    const filtered = projects.filter((project) =>
-      (project.projectName || "").toLowerCase().includes(query)
-    );
+
+    const filtered = projects.filter((project) => {
+      const matchesName = (project.projectName || "")
+        .toLowerCase()
+        .includes(query);
+      const matchesStatus =
+        !statusFilter ||
+        (project.status || "").toLowerCase() === statusFilter.toLowerCase();
+      return matchesName && matchesStatus;
+    });
+
     setFilteredProjects(filtered);
-  }, [searchQuery, projects]);
+  }, [searchQuery, statusFilter, projects]);
 
   const handleClose = () => {
     setOpen(false);
@@ -77,9 +87,7 @@ const router = useRouter();
   };
 
   const handleViewProject = (projectId) => {
-    // window.location.href = `/project/all/${projectId}`; // Replace with your route path
-    // window.location.href = `/project/all/${projectId}`;
-    router.push(`/project/all/${projectId}`);
+    router.push(`/project/${projectId}`);
   };
 
   return (
@@ -99,20 +107,33 @@ const router = useRouter();
       </header>
 
       <div className="space-y-4 p-6">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
           <h2 className="text-3xl font-semibold text-gray-900">Projects</h2>
 
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button>+ Add Project</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-xl overflow-y-auto max-h-[70vh]">
-              <DialogTitle className="text-xl font-semibold mb-2">
-                Add New Project
-              </DialogTitle>
-              <AddProject onClose={handleClose} />
-            </DialogContent>
-          </Dialog>
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Filter by Status */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button>+ Add Project</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-xl overflow-y-auto max-h-[70vh]">
+                <DialogTitle className="text-xl font-semibold mb-2">
+                  Add New Project
+                </DialogTitle>
+                <AddProject onClose={handleClose} />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <Input
@@ -129,8 +150,6 @@ const router = useRouter();
             <TableRow>
               <TableHead>Project Name</TableHead>
               <TableHead>Client ID</TableHead>
-              {/* <TableHead>Company ID</TableHead>
-              <TableHead>Timeline</TableHead> */}
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created At</TableHead>
@@ -142,11 +161,9 @@ const router = useRouter();
               <TableRow key={project.id} className="hover:bg-gray-100">
                 <TableCell>{project.projectName || "N/A"}</TableCell>
                 <TableCell>{project.clientId || "N/A"}</TableCell>
-                {/* <TableCell>{project.companyId || "N/A"}</TableCell> */}
                 <TableCell className="capitalize">
                   {project.priority || "N/A"}
                 </TableCell>
-                {/* <TableCell>{project.projectTimeline || "N/A"}</TableCell> */}
                 <TableCell>
                   <span
                     className={
@@ -164,13 +181,10 @@ const router = useRouter();
                     : "N/A"}
                 </TableCell>
                 <TableCell>
-                  {/* <Link href={`/project/${project.id}`}>
-                    {/* <Button variant="outline">View</Button> 
-                    view
-                  </Link> */}
-                  <Button onClick={() => handleViewProject(project.id)}>View</Button>
+                  <Button onClick={() => handleViewProject(project.id)}>
+                    View
+                  </Button>
                 </TableCell>
-                
               </TableRow>
             ))}
           </TableBody>

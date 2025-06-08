@@ -5,12 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,7 +18,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 
 export default function ProjectDetailPage() {
@@ -67,16 +68,16 @@ export default function ProjectDetailPage() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setEditedProject(prev => ({
+    setEditedProject((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSelectChange = (name, value) => {
-    setEditedProject(prev => ({
+    setEditedProject((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -91,12 +92,12 @@ export default function ProjectDetailPage() {
         priority: editedProject.priority,
         status: editedProject.status,
         projectBudget: editedProject.projectBudget,
-        description: editedProject.description
+        description: editedProject.description,
       });
-      
+
       setProject(editedProject);
       setIsEditable(false);
-      
+
       toast({
         title: "Success",
         description: "Project updated successfully",
@@ -133,7 +134,7 @@ export default function ProjectDetailPage() {
           </Breadcrumb>
         </div>
       </header>
-      
+
       <main className="p-6">
         <Card>
           <CardHeader>
@@ -147,12 +148,14 @@ export default function ProjectDetailPage() {
               </Button> */}
             </div>
           </CardHeader>
-          
+
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <Label className="block text-sm font-medium">Project Name</Label>
+                  <Label className="block text-sm font-medium">
+                    Project Name
+                  </Label>
                   {isEditable ? (
                     <Input
                       name="projectName"
@@ -166,7 +169,7 @@ export default function ProjectDetailPage() {
                     </p>
                   )}
                 </div>
-                
+
                 <div>
                   <Label className="block text-sm font-medium">Client ID</Label>
                   {isEditable ? (
@@ -182,9 +185,11 @@ export default function ProjectDetailPage() {
                     </p>
                   )}
                 </div>
-                
+
                 <div>
-                  <Label className="block text-sm font-medium">Company ID</Label>
+                  <Label className="block text-sm font-medium">
+                    Company ID
+                  </Label>
                   {isEditable ? (
                     <Input
                       name="companyId"
@@ -198,7 +203,7 @@ export default function ProjectDetailPage() {
                     </p>
                   )}
                 </div>
-                
+
                 <div>
                   <Label className="block text-sm font-medium">Timeline</Label>
                   {isEditable ? (
@@ -215,14 +220,16 @@ export default function ProjectDetailPage() {
                   )}
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <Label className="block text-sm font-medium">Priority</Label>
                   {isEditable ? (
                     <Select
                       value={editedProject.priority}
-                      onValueChange={(value) => handleSelectChange("priority", value)}
+                      onValueChange={(value) =>
+                        handleSelectChange("priority", value)
+                      }
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select priority" />
@@ -240,13 +247,15 @@ export default function ProjectDetailPage() {
                     </p>
                   )}
                 </div>
-                
+
                 <div>
                   <Label className="block text-sm font-medium">Status</Label>
                   {isEditable ? (
                     <Select
                       value={editedProject.status}
-                      onValueChange={(value) => handleSelectChange("status", value)}
+                      onValueChange={(value) =>
+                        handleSelectChange("status", value)
+                      }
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select status" />
@@ -265,14 +274,16 @@ export default function ProjectDetailPage() {
                     </p>
                   )}
                 </div>
-                
+
                 <div>
-                  <Label className="block text-sm font-medium">Created At</Label>
+                  <Label className="block text-sm font-medium">
+                    Created At
+                  </Label>
                   <p className="mt-1 text-sm text-gray-900 p-2 bg-gray-50 rounded">
                     {project.createdAt}
                   </p>
                 </div>
-                
+
                 <div>
                   <Label className="block text-sm font-medium">Budget</Label>
                   {isEditable ? (
@@ -291,7 +302,7 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-6">
               <Label className="block text-sm font-medium">Description</Label>
               {isEditable ? (
@@ -310,15 +321,23 @@ export default function ProjectDetailPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <div className="mt-6 flex justify-between">
           <Button onClick={() => router.push("/project")} variant="default">
             Back to Projects
           </Button>
-          <Button onClick={() => setIsEditable(!isEditable)}
-                variant={isEditable ? "default" : "default"}>
+          <Button
+            onClick={() => {
+              if (isEditable) {
+                handleSave(); // Call save before turning off edit mode
+              }
+              setIsEditable(!isEditable);
+            }}
+            variant="default"
+          >
             {isEditable ? "Save Changes" : "Edit Project"}
           </Button>
+
           {/* {isEditable && (
             // <Button onClick={handleSave} variant="default">
             //   Save Changes

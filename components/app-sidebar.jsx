@@ -147,9 +147,8 @@ export function AppSidebar({ ...props }) {
     title: "Project",
     icon: FolderKanban, // 🗂️
     permission: "project",
-    href: "/project",
     children: [
-      { title: "All Projects", href: "/project/all", key: "all" },
+      { title: "All Projects", href: "/project", key: "all" },
       // { title: "New Project", href: "/project/new", key: "new" },
       { title: "Deliverables", href: "/project/deliverables", key: "deliverables" },
     ],
