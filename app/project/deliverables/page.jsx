@@ -54,10 +54,9 @@ const DeliverablesPage = () => {
     if (!selectedCompany) return;
 
     const snapshot = await getDocs(collection(firestore, "deliverables"));
-    const items = snapshot.docs
-      .map((doc) => ({ id: doc.id, ...doc.data() }))
+    const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     setDeliverables(items);
-    console.log(selectedCompany)
+    console.log(selectedCompany);
   };
 
   const handleEditClick = async (id) => {
@@ -146,8 +145,7 @@ const DeliverablesPage = () => {
             <DialogTitle>
               {editingDeliverable ? "Edit Deliverable" : "Add Deliverable"}
             </DialogTitle>
-            <DialogClose asChild>
-            </DialogClose>
+            <DialogClose asChild></DialogClose>
           </DialogHeader>
 
           <AddDeliverablesForm

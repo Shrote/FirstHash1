@@ -35,6 +35,7 @@ export default function TaskManager() {
             userTasks.push({
               id: data.id || doc.id,
               title: data.title || "No Title",
+              description: data.description || "NO Description",
               status: data.status || "pending",
             });
           }
@@ -95,6 +96,7 @@ export default function TaskManager() {
                     <Card key={task.id} className="bg-white shadow rounded-xl">
                       <CardContent className="p-4">
                         <p className="font-medium">{task.title}</p>
+                        <p className="text-sm">{task.description}</p>
                         <div className="flex gap-2 mt-2 flex-wrap">
                           {columns
                             .filter((col) => col !== status)
