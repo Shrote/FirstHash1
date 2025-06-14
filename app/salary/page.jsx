@@ -67,7 +67,6 @@ function Salary() {
           id: doc.id,
           ...doc.data(),
         }));
-        console.log(fetchedUsers);
         setUsers(fetchedUsers);
       }
     );
@@ -225,7 +224,6 @@ function formatMonthYear(monthKey) {
             {users.map((user) => {
               const history = user.salaryHistory || {};
               const monthlyData = history[formatMonthYear(selectedMonthYear)] || {};
-              console.log("asdasd",selectedMonthYear)
               return (
                 <TableRow key={user.id}>
                   <TableCell>{user.name}</TableCell>
