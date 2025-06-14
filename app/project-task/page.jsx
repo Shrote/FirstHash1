@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -153,9 +152,9 @@ export default function ProjectTasksPage() {
                 <TableCell>
                   <span
                     className={
-                      task.status === "Completed"
+                      task.status === "completed"
                         ? "text-green-500"
-                        : task.status === "Ongoing"
+                        : task.status === "ongoing"
                         ? "text-yellow-500"
                         : "text-red-500"
                     }

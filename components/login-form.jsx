@@ -29,87 +29,97 @@ export function LoginForm({ className, ...props }) {
   }, [router]);
 
   const handleLogin = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
 
-    const userDocRef = doc(firestore, "users", user.uid);
-    const userDoc = await getDoc(userDocRef);
+      const userDocRef = doc(firestore, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
 
-    if (userDoc.exists()) {
-      const userData = userDoc.data();
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
 
-      // Check if userType is Admin (case-insensitive)
-      if (userData.userType?.toLowerCase() === "admin"  || userData.userType === "employee") {
-        // Save user info to localStorage
-        localStorage.setItem("userName", userData.email || email);
-        localStorage.setItem("userType", "admin");
+        // Check if userType is Admin (case-insensitive)
+        if (
+          userData.userType?.toLowerCase() === "admin" ||
+          userData.userType === "employee"
+        ) {
+          // Save user info to localStorage
+          localStorage.setItem("userName", userData.email || email);
+          localStorage.setItem("user", user.uid);
+          localStorage.setItem("userType", "admin");
 
-        // Save accessLevelMap as JSON string (keys with boolean values)
-        if (userData.accessLevelMap) {
-          localStorage.setItem("userAccessLevels", JSON.stringify(userData.accessLevelMap));
+          // Save accessLevelMap as JSON string (keys with boolean values)
+          if (userData.accessLevelMap) {
+            localStorage.setItem(
+              "userAccessLevels",
+              JSON.stringify(userData.accessLevelMap)
+            );
+          } else {
+            // fallback access levels if missing
+            localStorage.setItem(
+              "userAccessLevels",
+              JSON.stringify({
+                dashboard: true,
+                logs: true,
+                users: true,
+                client: true,
+                company: true,
+                employee: true,
+              })
+            );
+          }
+
+          showToast({
+            title: "Login Successful!",
+            description: "Redirecting to dashboard...",
+            status: "success",
+          });
+
+          router.push("/dashboard");
         } else {
-          // fallback access levels if missing
-          localStorage.setItem(
-            "userAccessLevels",
-            JSON.stringify({
-              dashboard: true,
-              logs: true,
-              users: true,
-              client: true,
-              company: true,
-              employee: true,
-            })
-          );
+          setError("You do not have admin access.");
+          showToast({
+            title: "Access Denied",
+            description: "You do not have admin access.",
+            status: "error",
+          });
         }
-
-        showToast({
-          title: "Login Successful!",
-          description: "Redirecting to dashboard...",
-          status: "success",
-        });
-
-        router.push("/dashboard");
       } else {
-        setError("You do not have admin access.");
+        setError("User not found in Firestore.");
         showToast({
-          title: "Access Denied",
-          description: "You do not have admin access.",
+          title: "Error",
+          description: "User not found in Firestore.",
           status: "error",
         });
       }
-    } else {
-      setError("User not found in Firestore.");
+    } catch (err) {
+      console.error("Error signing in:", err);
+      let errorMessage = "Invalid email or password. Please try again.";
+      if (err.code === "auth/invalid-email") {
+        errorMessage = "The email address is badly formatted.";
+      } else if (err.code === "auth/user-not-found") {
+        errorMessage = "No user found with this email address.";
+      }
+
+      setError(errorMessage);
       showToast({
         title: "Error",
-        description: "User not found in Firestore.",
+        description: errorMessage,
         status: "error",
       });
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Error signing in:", err);
-    let errorMessage = "Invalid email or password. Please try again.";
-    if (err.code === "auth/invalid-email") {
-      errorMessage = "The email address is badly formatted.";
-    } else if (err.code === "auth/user-not-found") {
-      errorMessage = "No user found with this email address.";
-    }
-
-    setError(errorMessage);
-    showToast({
-      title: "Error",
-      description: errorMessage,
-      status: "error",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);

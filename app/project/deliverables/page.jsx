@@ -37,8 +37,6 @@ import {
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { X } from "lucide-react";
-import toast from "react-hot-toast";
 import AddDeliverablesForm from "./addDeliverables";
 
 const DeliverablesPage = () => {
@@ -58,8 +56,8 @@ const DeliverablesPage = () => {
     const snapshot = await getDocs(collection(firestore, "deliverables"));
     const items = snapshot.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
-      .filter((item) => item.company === selectedCompany);
     setDeliverables(items);
+    console.log(selectedCompany)
   };
 
   const handleEditClick = async (id) => {
