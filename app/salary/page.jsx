@@ -1,11 +1,13 @@
 "use client";
-
+import { v4 as uuidv4 } from "uuid";
 import React, { useEffect, useState } from "react";
 import {
+  addDoc,
   collection,
   doc,
   getDoc,
   onSnapshot,
+  setDoc,
   updateDoc,
 } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
@@ -100,7 +102,7 @@ function Salary() {
   const openEditDialog = (user) => {
     setEditingUser(user);
     setEditedData({
-      paidSalary: user.paidSalary || "",
+      paidSalary: "",
       salaryStatus: user.salaryStatus || "unpaid",
     });
   };
@@ -108,13 +110,8 @@ function Salary() {
   const handleSave = async () => {
     if (!editingUser || !editedData.company) return;
 
-    const currentDate = new Date();
-    const monthYearKey = `${currentDate.toLocaleString("default", {
-      month: "long",
-    })}-${currentDate.getFullYear()}`; // e.g., "June-2025"
-
+    const monthYearKey = formatMonthYear(selectedMonthYear);
     const userRef = doc(firestore, "users", editingUser.id);
-
     try {
       // Fetch latest user data
       const userSnap = await getDoc(userRef);
@@ -129,23 +126,34 @@ function Salary() {
 
       // Update user document
       await updateDoc(userRef, {
-        paidSalary: editedData.paidSalary,
-        salaryStatus: editedData.salaryStatus,
         salaryHistory,
       });
 
-      // // Add account transaction if status is paid
-      // if (editedData.salaryStatus === "paid") {
-      //   await addDoc(collection(firestore, "accounts"), {
-      //     type: "debit",
-      //     amount: Number(editedData.paidSalary),
-      //     description: `Salary paid to ${editingUser.name}`,
-      //     userId: editingUser.id,
-      //     companyId: editedData.company,
-      //     date: new Date(),
-      //     month: monthYearKey,
-      //   });
-      // }
+      // Add account transaction if status is paid
+      if (editedData.salaryStatus === "paid") {
+        const monthYearKey = `${new Date().toLocaleString("default", {
+          month: "long",
+        })}-${new Date().getFullYear()}`;
+
+        const uniqueId = uuidv4();
+
+        const accountRef = doc(firestore, "accounts", monthYearKey);
+
+        await setDoc(
+          accountRef,
+          {
+            [uniqueId]: {
+              type: "debit",
+              amount: Number(editedData.paidSalary),
+              description: `Salary paid to ${editingUser.name}`,
+              userId: editingUser.id,
+              companyId: editedData.company,
+              date: new Date(),
+            },
+          },
+          { merge: true }
+        );
+      }
 
       toast.success("Salary updated and transaction logged");
       setEditingUser(null);
@@ -165,12 +173,12 @@ function Salary() {
     return result;
   }
 
-function formatMonthYear(monthKey) {
-  const [month, year] = monthKey.split("-");
-  const date = new Date(`${year}-${month.padStart(2, "0")}-01`);
-  const monthName = date.toLocaleString("default", { month: "long" });
-  return `${monthName}-${year}`;
-}
+  function formatMonthYear(monthKey) {
+    const [month, year] = monthKey.split("-");
+    const date = new Date(`${year}-${month.padStart(2, "0")}-01`);
+    const monthName = date.toLocaleString("default", { month: "long" });
+    return `${monthName}-${year}`;
+  }
 
   return (
     <>
@@ -223,7 +231,8 @@ function formatMonthYear(monthKey) {
           <TableBody>
             {users.map((user) => {
               const history = user.salaryHistory || {};
-              const monthlyData = history[formatMonthYear(selectedMonthYear)] || {};
+              const monthlyData =
+                history[formatMonthYear(selectedMonthYear)] || {};
               return (
                 <TableRow key={user.id}>
                   <TableCell>{user.name}</TableCell>
@@ -244,8 +253,11 @@ function formatMonthYear(monthKey) {
                   <TableCell>
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button onClick={() => openEditDialog(user)}>
-                          Edit
+                        <Button
+                          disabled={monthlyData.salaryStatus === "paid"}
+                          onClick={() => openEditDialog(user)}
+                        >
+                          Pay
                         </Button>
                       </DialogTrigger>
                       {editingUser?.id === user.id && (

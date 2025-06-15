@@ -47,9 +47,14 @@ export default function AddEmployeeForm({ onClose }) {
           company: true,
           user: true,
           dashboard: true,
-          logs: true,
           employee:true,
           client:true,
+          attendance:true,
+          project: true,
+          task: true,
+          accounts: true,
+          reports: true,
+          settings: true,
         },
       });
 

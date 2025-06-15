@@ -4,17 +4,14 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboardIcon,
-  Warehouse,
   Building2Icon,
   Factory,
   User2,
   CalendarCheck,
   ClipboardList,
   ListChecks,
-  Database,
   Receipt,
   FolderKanban,
-  Users2,
   IndianRupee,
 } from "lucide-react";
 
@@ -59,10 +56,6 @@ export function AppSidebar({ ...props }) {
         const accessLevelsStr = localStorage.getItem("userAccessLevels");
         const userTypeStr = localStorage.getItem("userType");
         const userEmailStr = localStorage.getItem("userName");
-
-        console.log("Fetched userAccessLevels:", accessLevelsStr);
-        console.log("Fetched userType:", userTypeStr);
-        console.log("Fetched userEmail:", userEmailStr);
 
         if (accessLevelsStr) {
           const accessLevels = parseAccessLevels(accessLevelsStr);
@@ -158,6 +151,12 @@ export function AppSidebar({ ...props }) {
     icon: IndianRupee, // ₹
     permission: "salary",
     href: "/salary",
+  },
+  {
+    title: "Accounts",
+    icon: IndianRupee, // ₹
+    permission: "accounts",
+    href: "/accounts",
   },
 ],
 
